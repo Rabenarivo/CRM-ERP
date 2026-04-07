@@ -1,1 +1,15 @@
+D:\ITU\PERSO\CRMERP\CRM+ERP\CRMERP\src\main\java\com\example\CRMERP\controller\AuthController.java
+D:\ITU\PERSO\CRMERP\CRM+ERP\CRMERP\src\main\java\com\example\CRMERP\controller\DepartmentController.java
+D:\ITU\PERSO\CRMERP\CRM+ERP\CRMERP\src\main\java\com\example\CRMERP\controller\RoleController.java
+D:\ITU\PERSO\CRMERP\CRM+ERP\CRMERP\src\main\java\com\example\CRMERP\controller\UserController.java
 D:\ITU\PERSO\CRMERP\CRM+ERP\CRMERP\src\main\java\com\example\CRMERP\CrmerpApplication.java
+D:\ITU\PERSO\CRMERP\CRM+ERP\CRMERP\src\main\java\com\example\CRMERP\entity\Department.java
+D:\ITU\PERSO\CRMERP\CRM+ERP\CRMERP\src\main\java\com\example\CRMERP\entity\Role.java
+D:\ITU\PERSO\CRMERP\CRM+ERP\CRMERP\src\main\java\com\example\CRMERP\entity\User.java
+D:\ITU\PERSO\CRMERP\CRM+ERP\CRMERP\src\main\java\com\example\CRMERP\entity\users_roles.java
+D:\ITU\PERSO\CRMERP\CRM+ERP\CRMERP\src\main\java\com\example\CRMERP\repository\DepartmentRepository.java
+D:\ITU\PERSO\CRMERP\CRM+ERP\CRMERP\src\main\java\com\example\CRMERP\repository\RoleRepository.java
+D:\ITU\PERSO\CRMERP\CRM+ERP\CRMERP\src\main\java\com\example\CRMERP\repository\UserRepository.java
+D:\ITU\PERSO\CRMERP\CRM+ERP\CRMERP\src\main\java\com\example\CRMERP\service\DepartmentService.java
+D:\ITU\PERSO\CRMERP\CRM+ERP\CRMERP\src\main\java\com\example\CRMERP\service\RoleService.java
+D:\ITU\PERSO\CRMERP\CRM+ERP\CRMERP\src\main\java\com\example\CRMERP\service\UserService.java
