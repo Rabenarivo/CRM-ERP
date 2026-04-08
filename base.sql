@@ -1,3 +1,34 @@
+SET session_replication_role = replica;
+
+-- =========================
+-- DROP TABLES (ordre important)
+-- =========================
+DROP TABLE IF EXISTS workflow_logs CASCADE;
+DROP TABLE IF EXISTS department_access CASCADE;
+DROP TABLE IF EXISTS bon_commandes CASCADE;
+DROP TABLE IF EXISTS proformas CASCADE;
+DROP TABLE IF EXISTS fournisseurs CASCADE;
+DROP TABLE IF EXISTS demandes_achat CASCADE;
+DROP TABLE IF EXISTS transactions CASCADE;
+DROP TABLE IF EXISTS commandes CASCADE;
+DROP TABLE IF EXISTS produits CASCADE;
+DROP TABLE IF EXISTS opportunites CASCADE;
+DROP TABLE IF EXISTS interactions CASCADE;
+DROP TABLE IF EXISTS clients CASCADE;
+DROP TABLE IF EXISTS user_roles CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
+DROP TABLE IF EXISTS roles CASCADE;
+DROP TABLE IF EXISTS departments CASCADE;
+
+-- =========================
+-- Réactiver contraintes
+-- =========================
+SET session_replication_role = DEFAULT;
+
+
+
+
+
 -- =========================
 -- DATABASE : CRM + ERP
 -- =========================
@@ -26,6 +57,7 @@ CREATE TABLE users (
     nom VARCHAR(100),
     email VARCHAR(150) UNIQUE,
     password VARCHAR(255),
+    enabled BOOLEAN DEFAULT TRUE,
     department_id INT,
     FOREIGN KEY (department_id) REFERENCES departments(id)
 );
@@ -149,28 +181,18 @@ CREATE TABLE bon_commandes (
 -- SEED DATA REALISTE
 -- =========================
 
--- Departments
-INSERT INTO departments (nom) VALUES
-('Direction'),
-('Finance'),
-('RH'),
-('Commercial'),
-('IT');
+
 
 -- Roles
-INSERT INTO roles (nom) VALUES
-('DIRECTEUR'),
-('FINANCE'),
-('RH'),
-('COMMERCIAL');
+
 
 -- Users
-INSERT INTO users (nom, email, password, department_id) VALUES
-('Jean Directeur', 'directeur@company.com', '1234', 1),
-('Paul Finance', 'finance@company.com', '1234', 2),
-('Marie RH', 'rh@company.com', '1234', 3),
-('Lucas Commercial', 'commercial@company.com', '1234', 4),
-('Kevin IT', 'it@company.com', '1234', 5);
+INSERT INTO users (nom, email, password, enabled, department_id) VALUES
+('Jean Directeur', 'directeur@company.com', '1234', TRUE, 1),
+('Paul Finance', 'finance@company.com', '1234', TRUE, 2),
+('Marie RH', 'rh@company.com', '1234', TRUE, 3),
+('Lucas Commercial', 'commercial@company.com', '1234', TRUE, 4),
+('Kevin IT', 'it@company.com', '1234', TRUE, 5);
 
 -- User Roles
 INSERT INTO user_roles VALUES
@@ -216,15 +238,6 @@ INSERT INTO proformas (demande_id, fournisseur_id, prix, delai, statut) VALUES
 
 
 
-
-
-CREATE TABLE department_access (
-    id SERIAL PRIMARY KEY,
-    department_id INT,
-    can_view_department_id INT,
-    FOREIGN KEY (department_id) REFERENCES departments(id),
-    FOREIGN KEY (can_view_department_id) REFERENCES departments(id)
-);
 
 
 
@@ -278,6 +291,23 @@ ALTER TABLE demandes_achat
 ADD CONSTRAINT fk_demande_user
 FOREIGN KEY (user_id)
 REFERENCES users(id);
+
+ALTER TABLE users
+ADD COLUMN IF NOT EXISTS enabled BOOLEAN DEFAULT TRUE;
+
+UPDATE users
+SET enabled = TRUE
+WHERE enabled IS NULL;
+
+
+alter table departments add column scores int;
+
+INSERT INTO departments (nom, scores) VALUES
+('Direction', 100),
+('Finance', 80),
+('RH', 70),
+('Commercial', 90),
+('IT', 50);
 
 
 -- SELECT d.nom,d.id

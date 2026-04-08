@@ -1,6 +1,6 @@
 package com.example.CRMERP.repository;
 
-import com.example.CRMERP.DTO.DepartmentAccessProjection;
+
 import com.example.CRMERP.entity.Department;
 
 import java.util.List;
@@ -12,12 +12,4 @@ import org.springframework.data.repository.query.Param;
 public interface DepartmentRepository extends JpaRepository<Department, Long> {
 
 
-@Query("""
-SELECT d.nom AS department,
-CONCAT('', d.id) AS accessLevel
-FROM DepartmentAccess da
-JOIN Department d ON d.id = da.canViewDepartmentId
-WHERE da.departmentId = :deptId
-""")
-List<DepartmentAccessProjection> findAccessibleDepartments(@Param("deptId") Long deptId);
 }

@@ -1,15 +1,12 @@
 package com.example.CRMERP.controller;
 
-import com.example.CRMERP.DTO.DepartmentAccessProjection;
 import com.example.CRMERP.entity.User;
-import com.example.CRMERP.service.DepartmentService;
 import com.example.CRMERP.service.UserService;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 
@@ -19,11 +16,9 @@ import java.util.Map;
 public class UserController {
 
     private final UserService userService;
-    private final DepartmentService departmentService;
 
-    public UserController(UserService service, DepartmentService departmentService) {
+    public UserController(UserService service) {
         this.userService = service;
-        this.departmentService = departmentService;
     }
 
 
@@ -39,15 +34,22 @@ public class UserController {
             return ResponseEntity.status(401).body("Invalid credentials");
         }
 
-        user.setPassword(null);
+        Map<String, Object> departmentPayload = new HashMap<>();
+        departmentPayload.put("id", user.getDepartment() != null ? user.getDepartment().getId() : null);
+        departmentPayload.put("nom", user.getDepartment() != null ? user.getDepartment().getNom() : null);
+        departmentPayload.put("scores", user.getDepartment() != null ? String.valueOf(user.getDepartment().getScores()) : null);
 
-        List<DepartmentAccessProjection> access = departmentService
-                .viewDepartementAcces(user.getDepartment().getId());
+        Map<String, Object> userPayload = new HashMap<>();
+        userPayload.put("id", user.getId());
+        userPayload.put("nom", user.getNom());
+        userPayload.put("email", user.getEmail());
+        userPayload.put("password", null);
+        userPayload.put("enabled", user.getEnabled());
+        userPayload.put("department", departmentPayload);
+        userPayload.put("roles", user.getRoles());
 
         Map<String, Object> response = new HashMap<>();
-        response.put("user", user);
-        response.put("roles", user.getRoles());
-        response.put("accessibleDepartments", access);
+        response.put("user", userPayload);
 
         return ResponseEntity.ok(response);
     }

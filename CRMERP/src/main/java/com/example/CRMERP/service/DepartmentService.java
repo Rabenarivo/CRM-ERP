@@ -1,6 +1,5 @@
 package com.example.CRMERP.service;
 
-import com.example.CRMERP.DTO.DepartmentAccessProjection;
 import com.example.CRMERP.entity.Department;
 import com.example.CRMERP.repository.DepartmentRepository;
 import org.springframework.stereotype.Service;
@@ -24,9 +23,6 @@ public class DepartmentService {
         return repo.save(d);
     }
 
-    public List<DepartmentAccessProjection> viewDepartementAcces(Long idDepartement) {
-        return repo.findAccessibleDepartments(idDepartement);
-    }
 
     public Department findById(Long id) {
         return repo.findById(id).orElse(null);

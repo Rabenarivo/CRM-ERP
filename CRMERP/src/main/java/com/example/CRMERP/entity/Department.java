@@ -17,4 +17,7 @@ public class Department {
 
     @Column(unique = true, nullable = false)
     private String nom;
+
+    @Column(nullable = false)
+    private int scores;
 }

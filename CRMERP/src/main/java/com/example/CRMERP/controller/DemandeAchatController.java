@@ -5,10 +5,8 @@ package com.example.CRMERP.controller;
 import com.example.CRMERP.entity.DemandeAchat;
 import com.example.CRMERP.entity.Department;
 import com.example.CRMERP.entity.User;
-import com.example.CRMERP.entity.WorkflowLog;
 import com.example.CRMERP.service.DemandeAchatService;
 import com.example.CRMERP.service.UserService;
-import com.example.CRMERP.service.WorkflowLogService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,16 +20,10 @@ public class DemandeAchatController {
 
     private final DemandeAchatService service;
     private final UserService userService;
-    private final WorkflowLogService workflowLogService;
     
-    public DemandeAchatController(
-            DemandeAchatService service,
-            UserService userService,
-            WorkflowLogService workflowLogService
-    ) {
+    public DemandeAchatController(DemandeAchatService service, UserService userService) {
         this.service = service;
         this.userService = userService;
-        this.workflowLogService = workflowLogService;
     }
 
     @GetMapping
@@ -66,14 +58,6 @@ public class DemandeAchatController {
             demande.setDepartment(department);
 
             DemandeAchat saved = service.save(demande);
-
-            WorkflowLog log = new WorkflowLog();
-            log.setDemande(saved);
-            log.setUser(user);
-            log.setDepartment(department);
-            log.setAction("CREATION_DEMANDE");
-            log.setCommentaire("Creation automatique");
-            workflowLogService.save(log);
 
             Map<String, Object> userPayload = new HashMap<>();
             userPayload.put("id", user.getId());

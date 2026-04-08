@@ -4,13 +4,11 @@ export const login = async (email, password) => {
   const response = await loginApi({ email, password });
 
   const data = response.data;
+  const user = data.user;
 
-  localStorage.setItem("user", JSON.stringify(data.user));
-  localStorage.setItem("roles", JSON.stringify(data.roles));
-  localStorage.setItem(
-    "access",
-    JSON.stringify(data.accessibleDepartments)
-  );
+  localStorage.setItem("user", JSON.stringify(user));
+  localStorage.setItem("roles", JSON.stringify(user?.roles ?? []));
+  localStorage.setItem("access", JSON.stringify([]));
 
   return data;
 };
