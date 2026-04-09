@@ -5,8 +5,10 @@ package com.example.CRMERP.controller;
 import com.example.CRMERP.entity.DemandeAchat;
 import com.example.CRMERP.entity.Department;
 import com.example.CRMERP.entity.User;
+import com.example.CRMERP.entity.WorkflowLog;
 import com.example.CRMERP.service.DemandeAchatService;
 import com.example.CRMERP.service.UserService;
+import com.example.CRMERP.service.WorkflowLogService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,10 +22,16 @@ public class DemandeAchatController {
 
     private final DemandeAchatService service;
     private final UserService userService;
+    private final WorkflowLogService workflowLogService;
     
-    public DemandeAchatController(DemandeAchatService service, UserService userService) {
+    public DemandeAchatController(
+            DemandeAchatService service,
+            UserService userService,
+            WorkflowLogService workflowLogService
+    ) {
         this.service = service;
         this.userService = userService;
+        this.workflowLogService = workflowLogService;
     }
 
     @GetMapping
@@ -58,6 +66,14 @@ public class DemandeAchatController {
             demande.setDepartment(department);
 
             DemandeAchat saved = service.save(demande);
+
+            WorkflowLog workflowLog = new WorkflowLog();
+            workflowLog.setDemande(saved);
+            workflowLog.setUser(user);
+            workflowLog.setDepartment(department);
+            workflowLog.setAction("CREATION_DEMANDE");
+            workflowLog.setCommentaire("Creation demande_achat créer par  "+user.getNom() + " du département " + (department != null ? department.getNom() : "N/A") + " avec le produit " + produit + " et la quantité " + quantite);
+            workflowLogService.save(workflowLog);
 
             Map<String, Object> userPayload = new HashMap<>();
             userPayload.put("id", user.getId());

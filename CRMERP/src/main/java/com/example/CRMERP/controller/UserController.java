@@ -28,9 +28,17 @@ public class UserController {
         String email = request.get("email");
         String password = request.get("password");
 
+        if (email == null || email.trim().isEmpty() || password == null || password.isBlank()) {
+            return ResponseEntity.status(400).body("Email and password are required");
+        }
+
         User user = userService.findByEmail(email);
 
-        if (user == null || !user.getPassword().equals(password)) {
+        if (user == null) {
+            return ResponseEntity.status(401).body("User not found");
+        }
+
+        if (user.getPassword() == null || !user.getPassword().equals(password)) {
             return ResponseEntity.status(401).body("Invalid credentials");
         }
 

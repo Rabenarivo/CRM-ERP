@@ -1,7 +1,10 @@
 import { loginApi } from "../api/authApi";
 
 export const login = async (email, password) => {
-  const response = await loginApi({ email, password });
+  const response = await loginApi({
+    email: (email || "").trim(),
+    password,
+  });
 
   const data = response.data;
   const user = data.user;

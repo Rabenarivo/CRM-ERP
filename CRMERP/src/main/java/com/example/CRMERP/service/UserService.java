@@ -14,7 +14,16 @@ public class UserService {
     }
 
     public User findByEmail(String email) {
-        return repo.findByEmail(email).orElse(null);
+        if (email == null) {
+            return null;
+        }
+
+        String normalizedEmail = email.trim();
+        if (normalizedEmail.isEmpty()) {
+            return null;
+        }
+
+        return repo.findByEmailIgnoreCase(normalizedEmail).orElse(null);
     }
 
     public User findById(Long id) {
