@@ -294,12 +294,6 @@ ADD CONSTRAINT fk_demande_user
 FOREIGN KEY (user_id)
 REFERENCES users(id);
 
-ALTER TABLE users
-ADD COLUMN IF NOT EXISTS enabled BOOLEAN DEFAULT TRUE;
-
-UPDATE users
-SET enabled = TRUE
-WHERE enabled IS NULL;
 
 
 alter table departments add column scores int;
@@ -311,6 +305,20 @@ INSERT INTO departments (nom, scores) VALUES
 ('Commercial', 90),
 ('IT', 50),
 ('Magasiner', 10);
+
+
+CREATE TABLE stock_movements (
+    id SERIAL PRIMARY KEY,
+    produit_id INT,
+    type VARCHAR(20), -- ENTREE / SORTIE
+    quantite INT,
+    date_mouvement TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    user_id INT,
+    commentaire TEXT,
+
+    FOREIGN KEY (produit_id) REFERENCES produits(id),
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
 
 
 -- SELECT d.nom,d.id
