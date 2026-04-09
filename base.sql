@@ -192,7 +192,8 @@ INSERT INTO users (nom, email, password, enabled, department_id) VALUES
 ('Paul Finance', 'finance@company.com', '1234', TRUE, 2),
 ('Marie RH', 'rh@company.com', '1234', TRUE, 3),
 ('Lucas Commercial', 'commercial@company.com', '1234', TRUE, 4),
-('Kevin IT', 'it@company.com', '1234', TRUE, 5);
+('Kevin IT', 'it@company.com', '1234', TRUE, 5),
+('Tojo Magasiner', 'magasiner@company.com', '1234', TRUE, 6);
 
 -- User Roles
 INSERT INTO user_roles VALUES
@@ -200,7 +201,8 @@ INSERT INTO user_roles VALUES
 (2,2),
 (3,3),
 (4,4),
-(5,4);
+(5,4),
+(6,4);
 
 -- Clients
 INSERT INTO clients (nom, email, telephone, department_id) VALUES
@@ -307,7 +309,8 @@ INSERT INTO departments (nom, scores) VALUES
 ('Finance', 80),
 ('RH', 70),
 ('Commercial', 90),
-('IT', 50);
+('IT', 50),
+('Magasiner', 10);
 
 
 -- SELECT d.nom,d.id

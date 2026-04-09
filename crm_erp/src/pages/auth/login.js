@@ -15,7 +15,13 @@ export default function Login() {
 
       window.location.href = "/dashboard";
     } catch (err) {
-      setError("Invalid email or password");
+      const apiMessage =
+        typeof err?.response?.data === "string"
+          ? err.response.data
+          : err?.response?.status === 401
+            ? "Email ou mot de passe incorrect"
+            : "Connexion impossible";
+      setError(apiMessage);
     }
   };
 
