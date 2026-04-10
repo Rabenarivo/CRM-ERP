@@ -26,54 +26,58 @@ export default function AppNavbar() {
   };
 
   return (
-    <header className="app-navbar">
-      <div className="app-navbar__brand">
-        <span className="app-navbar__badge">CRM ERP</span>
-        <div>
-          <h1>Navigation métier</h1>
-          <p>
-            {user ? `${user.nom} · Score ${userScore}` : "Connectez-vous pour accéder aux pages"}
+    <nav className="navbar navbar-default app-navbar" role="navigation">
+      <div className="container">
+        <div className="navbar-header app-navbar__brand">
+          <span className="navbar-brand app-navbar__brand-label">CRM ERP</span>
+          <p className="navbar-text app-navbar__meta">
+            {user ? `${user.nom} - Score ${userScore}` : "Connectez-vous pour acceder aux pages"}
           </p>
         </div>
-      </div>
 
-      <nav className="app-navbar__nav" aria-label="Navigation principale">
-        {!isAuthenticated ? (
-          <NavLink to="/login" className="app-navbar__link app-navbar__link--active">
-            Connexion
-          </NavLink>
-        ) : (
-          NAV_ITEMS.map((item) => {
-            const allowed = userScore >= item.minScore;
-
-            if (!allowed) {
-              return (
-                <span key={item.path} className="app-navbar__link app-navbar__link--locked">
-                  {item.label}
-                </span>
-              );
-            }
-
-            return (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                className={({ isActive }) =>
-                  `app-navbar__link${isActive ? " app-navbar__link--active" : ""}`
-                }
-              >
-                {item.label}
+        <ul className="nav navbar-nav navbar-right app-navbar__nav" aria-label="Navigation principale">
+          {!isAuthenticated ? (
+            <li>
+              <NavLink to="/login" className="app-navbar__link">
+                Connexion
               </NavLink>
-            );
-          })
-        )}
+            </li>
+          ) : (
+            NAV_ITEMS.map((item) => {
+              const allowed = userScore >= item.minScore;
 
-        {isAuthenticated ? (
-          <button type="button" className="app-navbar__logout" onClick={handleLogout}>
-            Déconnexion
-          </button>
-        ) : null}
-      </nav>
-    </header>
+              if (!allowed) {
+                return (
+                  <li key={item.path} className="disabled app-navbar__link--locked-item">
+                    <span className="app-navbar__link app-navbar__link--locked">{item.label}</span>
+                  </li>
+                );
+              }
+
+              return (
+                <li key={item.path}>
+                  <NavLink
+                    to={item.path}
+                    className={({ isActive }) =>
+                      `app-navbar__link${isActive ? " app-navbar__link--active" : ""}`
+                    }
+                  >
+                    {item.label}
+                  </NavLink>
+                </li>
+              );
+            })
+          )}
+
+          {isAuthenticated ? (
+            <li className="app-navbar__logout-item">
+              <button type="button" className="btn btn-theme navbar-btn" onClick={handleLogout}>
+                Deconnexion
+              </button>
+            </li>
+          ) : null}
+        </ul>
+      </div>
+    </nav>
   );
 }

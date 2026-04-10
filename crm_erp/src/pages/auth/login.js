@@ -26,55 +26,53 @@ export default function Login() {
   };
 
   return (
-    <div style={styles.container}>
-      <form onSubmit={handleLogin} style={styles.form}>
-        <h2>Login</h2>
+    <div className="auth-page">
+      <div className="container">
+        <div className="row">
+          <div className="col-sm-6 col-sm-offset-3 col-md-4 col-md-offset-4">
+            <div className="panel panel-default auth-panel">
+              <div className="panel-heading text-center">
+                <h3 className="panel-title">Connexion</h3>
+              </div>
+              <div className="panel-body">
+                <form onSubmit={handleLogin}>
+                  {error ? <div className="alert alert-danger">{error}</div> : null}
 
-        {error && <p style={{ color: "red" }}>{error}</p>}
+                  <div className="form-group">
+                    <label htmlFor="email">Email</label>
+                    <input
+                      id="email"
+                      type="email"
+                      className="form-control"
+                      placeholder="Email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                    />
+                  </div>
 
-        <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          style={styles.input}
-        />
+                  <div className="form-group">
+                    <label htmlFor="password">Mot de passe</label>
+                    <input
+                      id="password"
+                      type="password"
+                      className="form-control"
+                      placeholder="Password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                    />
+                  </div>
 
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          style={styles.input}
-        />
-
-        <button type="submit" style={styles.button}>
-          Login
-        </button>
-      </form>
+                  <button type="submit" className="btn btn-primary btn-block">
+                    Login
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
-
-const styles = {
-  container: {
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    height: "100vh",
-  },
-  form: {
-    width: "300px",
-    padding: "20px",
-    border: "1px solid #ccc",
-  },
-  input: {
-    width: "100%",
-    margin: "10px 0",
-    padding: "10px",
-  },
-  button: {
-    width: "100%",
-    padding: "10px",
-  },
-};

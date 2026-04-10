@@ -1,8 +1,9 @@
 export default function Type50Page() {
   return (
-    <div style={{ padding: "24px" }}>
-      <h1>Type 50 Page</h1>
-      <p>Accessible for score 50 and above.</p>
+    <div className="page-card">
+      <p className="page-eyebrow">Score 50</p>
+      <h2>Type 50 Page</h2>
+      <p className="page-muted">Accessible for score 50 and above.</p>
     </div>
   );
 }

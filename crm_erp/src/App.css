@@ -1,112 +1,119 @@
+:root {
+  --brand-900: #1F6F5F;
+  --brand-700: #2FA084;
+  --brand-500: #6FCF97;
+  --surface-100: #EEEEEE;
+}
+
 .app-shell {
   min-height: 100vh;
   background:
-    radial-gradient(circle at top left, rgba(13, 148, 136, 0.18), transparent 28%),
-    radial-gradient(circle at top right, rgba(2, 132, 199, 0.18), transparent 32%),
-    linear-gradient(180deg, #f5f7fb 0%, #eef2f7 100%);
+    radial-gradient(circle at top left, rgba(47, 160, 132, 0.22), transparent 34%),
+    radial-gradient(circle at top right, rgba(111, 207, 151, 0.2), transparent 34%),
+    linear-gradient(180deg, #f8fbfa 0%, var(--surface-100) 100%);
 }
 
 .app-navbar {
-  display: flex;
-  justify-content: space-between;
-  gap: 24px;
-  padding: 20px 28px;
-  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
-  background: rgba(255, 255, 255, 0.82);
-  backdrop-filter: blur(16px);
-  position: sticky;
-  top: 0;
-  z-index: 10;
+  margin-bottom: 0;
+  border: 0;
+  border-radius: 0;
+  border-bottom: 4px solid var(--brand-500);
+  background: linear-gradient(90deg, var(--brand-900), var(--brand-700));
+  box-shadow: 0 6px 20px rgba(31, 111, 95, 0.22);
 }
 
 .app-navbar__brand {
   display: flex;
   align-items: center;
-  gap: 16px;
+  flex-wrap: wrap;
 }
 
-.app-navbar__badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 76px;
-  height: 76px;
-  border-radius: 20px;
-  background: linear-gradient(135deg, #0f766e, #0ea5e9);
+.app-navbar .navbar-brand.app-navbar__brand-label {
   color: #fff;
   font-weight: 700;
-  letter-spacing: 0.08em;
-  font-size: 0.85rem;
+  letter-spacing: 0.03em;
 }
 
-.app-navbar__brand h1 {
-  margin: 0;
-  font-size: 1.15rem;
-  color: #0f172a;
+.app-navbar .navbar-brand.app-navbar__brand-label:hover,
+.app-navbar .navbar-brand.app-navbar__brand-label:focus {
+  color: #fff;
 }
 
-.app-navbar__brand p {
-  margin: 4px 0 0;
-  color: #475569;
+.app-navbar .navbar-text.app-navbar__meta {
+  color: rgba(255, 255, 255, 0.9);
+  margin-left: 10px;
 }
 
 .app-navbar__nav {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 10px;
-  justify-content: flex-end;
 }
 
-.app-navbar__link,
-.app-navbar__logout {
-  border: 0;
-  border-radius: 999px;
-  padding: 10px 16px;
-  font-size: 0.92rem;
+.app-navbar .nav > li > .app-navbar__link {
+  color: rgba(255, 255, 255, 0.88);
   font-weight: 600;
-  transition: transform 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+  border-bottom: 2px solid transparent;
+  background: transparent;
 }
 
-.app-navbar__link {
-  text-decoration: none;
-  color: #334155;
-  background: rgba(148, 163, 184, 0.14);
+.app-navbar .nav > li > .app-navbar__link:hover,
+.app-navbar .nav > li > .app-navbar__link:focus {
+  color: #fff;
+  background: transparent;
 }
 
-.app-navbar__link:hover,
-.app-navbar__logout:hover {
-  transform: translateY(-1px);
+.app-navbar .nav > li > .app-navbar__link.app-navbar__link--active {
+  color: #fff;
+  border-bottom-color: #fff;
 }
 
-.app-navbar__link--active {
-  background: #0f766e;
+.app-navbar__link--locked-item > .app-navbar__link {
+  color: rgba(255, 255, 255, 0.45);
+  cursor: not-allowed;
+}
+
+.app-navbar__logout-item {
+  padding-left: 10px;
+}
+
+.btn-theme,
+.btn-primary {
+  background-color: var(--brand-700);
+  border-color: var(--brand-900);
+}
+
+.btn-theme:hover,
+.btn-theme:focus,
+.btn-primary:hover,
+.btn-primary:focus {
+  background-color: var(--brand-900);
+  border-color: var(--brand-900);
   color: #fff;
 }
 
-.app-navbar__link--locked {
-  color: #94a3b8;
-  background: rgba(148, 163, 184, 0.08);
+.panel-default {
+  border-color: rgba(31, 111, 95, 0.22);
 }
 
-.app-navbar__logout {
-  cursor: pointer;
-  background: #1e293b;
-  color: #fff;
+.panel-default > .panel-heading {
+  background: #f4fbf8;
+  border-color: rgba(31, 111, 95, 0.18);
+  color: var(--brand-900);
+  font-weight: 700;
 }
 
 .page-content {
-  padding: 28px;
+  padding: 28px 15px;
 }
 
 .page-card {
   max-width: 1120px;
   margin: 0 auto;
-  background: rgba(255, 255, 255, 0.88);
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(31, 111, 95, 0.16);
+  border-radius: 12px;
   padding: 28px;
-  box-shadow: 0 24px 64px rgba(15, 23, 42, 0.08);
+  box-shadow: 0 16px 36px rgba(31, 111, 95, 0.15);
 }
 
 .page-card__header {
@@ -121,68 +128,34 @@
   margin: 0 0 6px;
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  color: #0f766e;
-  font-size: 0.78rem;
+  color: var(--brand-700);
+  font-size: 11px;
   font-weight: 700;
 }
 
 .page-card h2,
 .page-card h3,
 .page-card h1 {
-  margin: 0;
-  color: #0f172a;
+  margin-top: 0;
+  color: #203534;
 }
 
 .page-muted {
   margin: 0;
-  color: #64748b;
+  color: #63706f;
 }
 
 .page-alert {
   margin-bottom: 18px;
-  padding: 12px 16px;
-  border-radius: 14px;
-  background: #ecfeff;
-  color: #155e75;
+  border-radius: 6px;
 }
 
 .request-form {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
-  align-items: end;
   margin-bottom: 28px;
 }
 
-.request-form label {
-  display: grid;
-  gap: 8px;
-  color: #0f172a;
-  font-weight: 600;
-}
-
-.request-form input {
-  border: 1px solid #cbd5e1;
-  border-radius: 14px;
-  padding: 14px 16px;
-  font-size: 1rem;
-  background: #fff;
-}
-
-.request-form button {
-  border: 0;
-  border-radius: 14px;
-  padding: 14px 18px;
-  background: linear-gradient(135deg, #0f766e, #0284c7);
-  color: #fff;
-  font-size: 1rem;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.request-form button:disabled {
-  opacity: 0.7;
-  cursor: wait;
+.request-form__submit {
+  margin-top: 25px;
 }
 
 .request-list__header {
@@ -199,21 +172,19 @@
 }
 
 .request-item {
-  padding: 18px;
-  border-radius: 18px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  margin-bottom: 0;
+  border-color: rgba(31, 111, 95, 0.2);
 }
 
 .request-item strong {
   display: block;
   margin-bottom: 8px;
-  font-size: 1.02rem;
+  font-size: 15px;
 }
 
 .request-item p {
   margin: 4px 0 0;
-  color: #475569;
+  color: #4f6260;
 }
 
 .workflow-grid {
@@ -223,13 +194,14 @@
 }
 
 .workflow-card {
-  border: 1px solid #e2e8f0;
-  background: #f8fafc;
-  border-radius: 18px;
+  border: 1px solid rgba(31, 111, 95, 0.2);
+  background: #fbfdfc;
+  border-radius: 10px;
   padding: 18px;
 }
 
 .workflow-card h3 {
+  margin-top: 0;
   margin-bottom: 12px;
 }
 
@@ -240,49 +212,38 @@
 
 .workflow-item {
   text-align: left;
-  border: 1px solid #cbd5e1;
-  border-radius: 12px;
+  border-radius: 8px;
   padding: 12px;
-  background: #fff;
   cursor: pointer;
   display: grid;
   gap: 4px;
 }
 
 .workflow-item strong {
-  color: #0f172a;
+  color: #203534;
 }
 
 .workflow-item span {
-  color: #475569;
-  font-size: 0.92rem;
+  color: #4f6260;
+  font-size: 13px;
 }
 
 .workflow-item--active {
-  border-color: #0f766e;
-  box-shadow: 0 0 0 2px rgba(15, 118, 110, 0.14);
+  border-color: var(--brand-700);
+  box-shadow: 0 0 0 2px rgba(47, 160, 132, 0.2);
 }
 
 .workflow-check-btn {
   margin-top: 12px;
-  border: 0;
-  border-radius: 12px;
-  padding: 11px 16px;
-  background: linear-gradient(135deg, #0f766e, #0284c7);
-  color: #fff;
   font-weight: 700;
-  cursor: pointer;
 }
 
 .workflow-check-btn:disabled {
   opacity: 0.75;
-  cursor: wait;
 }
 
 .workflow-result {
   margin-top: 14px;
-  border-radius: 12px;
-  padding: 12px;
 }
 
 .workflow-result p {
@@ -290,29 +251,48 @@
 }
 
 .workflow-result--ok {
-  border: 1px solid #a7f3d0;
-  background: #ecfdf5;
-  color: #065f46;
+  border-color: var(--brand-500);
+  color: var(--brand-900);
 }
 
 .workflow-result--ko {
-  border: 1px solid #fecaca;
-  background: #fef2f2;
+  border-color: #d9b3b3;
+  background: #f8efef;
   color: #991b1b;
 }
 
-@media (max-width: 960px) {
-  .app-navbar,
-  .page-card__header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
+.auth-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+}
 
-  .request-form {
-    grid-template-columns: 1fr;
+.auth-panel {
+  border-color: rgba(31, 111, 95, 0.24);
+  box-shadow: 0 12px 28px rgba(31, 111, 95, 0.14);
+}
+
+.auth-panel .panel-heading {
+  background: linear-gradient(90deg, var(--brand-900), var(--brand-700));
+  color: #fff;
+}
+
+.auth-panel .panel-title {
+  color: #fff;
+}
+
+@media (max-width: 960px) {
+  .app-navbar .navbar-header,
+  .app-navbar .navbar-right,
+  .page-card__header {
+    float: none !important;
   }
 
   .workflow-grid {
     grid-template-columns: 1fr;
+  }
+
+  .request-form__submit {
+    margin-top: 0;
   }
 }
