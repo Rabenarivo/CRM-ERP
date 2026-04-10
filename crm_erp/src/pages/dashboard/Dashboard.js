@@ -15,26 +15,50 @@ export default function Dashboard() {
   const userScore = getUserDepartmentScore(user);
 
   return (
-    <div style={{ padding: "24px" }}>
-      <h1>Dashboard</h1>
-      <p>
-        User: <strong>{user?.nom || "Unknown"}</strong>
-      </p>
-      <p>
-        Department: <strong>{user?.department?.nom || "Unknown"}</strong>
-      </p>
-      <p>
-        Score: <strong>{userScore}</strong>
-      </p>
+    <div className="page-card">
+      <div className="page-card__header">
+        <div>
+          <p className="page-eyebrow">Accueil</p>
+          <h2>Dashboard</h2>
+        </div>
+        <p className="page-muted">Vue d'ensemble de votre acces metier.</p>
+      </div>
 
-      <h2>Available page types</h2>
-      <ul>
+      <div className="row">
+        <div className="col-sm-4">
+          <div className="panel panel-default">
+            <div className="panel-heading">Utilisateur</div>
+            <div className="panel-body">
+              <strong>{user?.nom || "Unknown"}</strong>
+            </div>
+          </div>
+        </div>
+        <div className="col-sm-4">
+          <div className="panel panel-default">
+            <div className="panel-heading">Departement</div>
+            <div className="panel-body">
+              <strong>{user?.department?.nom || "Unknown"}</strong>
+            </div>
+          </div>
+        </div>
+        <div className="col-sm-4">
+          <div className="panel panel-default">
+            <div className="panel-heading">Score</div>
+            <div className="panel-body">
+              <strong>{userScore}</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <h3>Types de pages disponibles</h3>
+      <ul className="list-group">
         {PAGE_TYPES.map((page) => (
-          <li key={page.score}>
+          <li key={page.score} className="list-group-item">
             {userScore >= page.score ? (
               <Link to={page.path}>Type {page.score}</Link>
             ) : (
-              <span>Type {page.score} (locked)</span>
+              <span className="text-muted">Type {page.score} (locked)</span>
             )}
           </li>
         ))}

@@ -76,38 +76,48 @@ export default function DemandeAchatPage() {
         <p className="page-muted">Création et suivi via l'API /api/demandes-achat</p>
       </div>
 
-      {message ? <div className="page-alert">{message}</div> : null}
+      {message ? <div className="alert alert-info page-alert">{message}</div> : null}
 
-      <form className="request-form" onSubmit={handleSubmit}>
-        <label>
-          Produit
-          <input
-            type="text"
-            name="produit"
-            value={form.produit}
-            onChange={handleChange}
-            placeholder="Nom du produit"
-            required
-          />
-        </label>
+      <form className="request-form row" onSubmit={handleSubmit}>
+        <div className="col-sm-5">
+          <div className="form-group">
+            <label htmlFor="produit">Produit</label>
+            <input
+              id="produit"
+              type="text"
+              className="form-control"
+              name="produit"
+              value={form.produit}
+              onChange={handleChange}
+              placeholder="Nom du produit"
+              required
+            />
+          </div>
+        </div>
 
-        <label>
-          Quantité
-          <input
-            type="number"
-            name="quantite"
-            value={form.quantite}
-            onChange={handleChange}
-            min="1"
-            step="1"
-            placeholder="1"
-            required
-          />
-        </label>
+        <div className="col-sm-4">
+          <div className="form-group">
+            <label htmlFor="quantite">Quantite</label>
+            <input
+              id="quantite"
+              type="number"
+              className="form-control"
+              name="quantite"
+              value={form.quantite}
+              onChange={handleChange}
+              min="1"
+              step="1"
+              placeholder="1"
+              required
+            />
+          </div>
+        </div>
 
-        <button type="submit" disabled={saving}>
-          {saving ? "Création en cours..." : "Créer la demande"}
-        </button>
+        <div className="col-sm-3 request-form__submit">
+          <button type="submit" className="btn btn-primary btn-block" disabled={saving}>
+            {saving ? "Creation en cours..." : "Creer la demande"}
+          </button>
+        </div>
       </form>
 
       <section className="request-list">
@@ -123,13 +133,15 @@ export default function DemandeAchatPage() {
         ) : (
           <div className="request-list__items">
             {demandes.map((demande) => (
-              <article key={demande.id} className="request-item">
-                <strong>{demande.produit}</strong>
+              <article key={demande.id} className="request-item panel panel-default">
+                <div className="panel-body">
+                  <strong>{demande.produit}</strong>
                 <p>Quantité: {demande.quantite}</p>
                 <p>Statut: {demande.statut || "-"}</p>
                 <p>
                   Demandeur: {demande.user?.nom || "-"} · Département: {demande.department?.nom || "-"}
                 </p>
+                </div>
               </article>
             ))}
           </div>

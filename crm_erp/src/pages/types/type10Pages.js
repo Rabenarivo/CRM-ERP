@@ -96,7 +96,7 @@ export default function Type10Page() {
         </p>
       </div>
 
-      {error ? <div className="page-alert">{error}</div> : null}
+      {error ? <div className="alert alert-warning page-alert">{error}</div> : null}
 
       <div className="workflow-grid">
         <section className="workflow-card">
@@ -113,7 +113,7 @@ export default function Type10Page() {
                   <button
                     key={demande.id}
                     type="button"
-                    className={`workflow-item${isActive ? " workflow-item--active" : ""}`}
+                    className={`workflow-item btn btn-default${isActive ? " workflow-item--active" : ""}`}
                     onClick={() => {
                       setSelectedDemandeId(String(demande.id));
                       setStockResult(null);
@@ -141,7 +141,7 @@ export default function Type10Page() {
 
               <button
                 type="button"
-                className="workflow-check-btn"
+                className="workflow-check-btn btn btn-primary"
                 onClick={handleCheckStock}
                 disabled={checkingStock}
               >
@@ -150,13 +150,13 @@ export default function Type10Page() {
 
               {stockResult ? (
                 stockResult.available ? (
-                  <div className="workflow-result workflow-result--ok">
+                  <div className="workflow-result workflow-result--ok alert alert-success">
                     <strong>Produit disponible en stock</strong>
                     <p>Produit: {stockResult.produit.nom}</p>
                     <p>Stock actuel: {stockResult.produit.stock}</p>
                   </div>
                 ) : (
-                  <div className="workflow-result workflow-result--ko">
+                  <div className="workflow-result workflow-result--ko alert alert-danger">
                     <strong>{stockResult.message}</strong>
                   </div>
                 )

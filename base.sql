@@ -321,6 +321,27 @@ CREATE TABLE stock_movements (
 );
 
 
+CREATE TABLE offres (
+    id SERIAL PRIMARY KEY,
+
+    demande_id INT NOT NULL,
+    fournisseur_id INT NOT NULL,
+
+    reference VARCHAR(100),
+    delai_livraison INT, -- en jours
+
+    validite DATE, -- date de validité de l'offre
+    description TEXT,
+
+    statut VARCHAR(50) DEFAULT 'EN_ATTENTE',
+
+    date_creation TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (demande_id) REFERENCES demandes_achat(id),
+    FOREIGN KEY (fournisseur_id) REFERENCES fournisseurs(id)
+);
+
+
 -- SELECT d.nom,d.id
 -- FROM department_access da
 -- JOIN departments d ON d.id = da.can_view_department_id
