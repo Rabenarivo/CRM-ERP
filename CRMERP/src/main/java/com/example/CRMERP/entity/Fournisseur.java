@@ -1,5 +1,6 @@
 package com.example.CRMERP.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import java.util.List;
@@ -21,6 +22,7 @@ public class Fournisseur {
     private String contact;
 
     // Relation avec Proforma
+    @JsonIgnore
     @OneToMany(mappedBy = "fournisseur")
     private List<Proforma> proformas;
 }

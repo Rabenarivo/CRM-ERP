@@ -189,7 +189,7 @@
 
 .workflow-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 16px;
 }
 
@@ -226,6 +226,15 @@
 .workflow-item span {
   color: #4f6260;
   font-size: 13px;
+}
+
+.fournisseur-item {
+  border: 1px solid rgba(31, 111, 95, 0.2);
+  background: #fff;
+}
+
+.fournisseur-item input[type="checkbox"] {
+  margin-right: 8px;
 }
 
 .workflow-item--active {
