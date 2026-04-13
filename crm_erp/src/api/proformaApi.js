@@ -6,3 +6,11 @@ const API_URL = `${API_BASE_URL}/api/proforma`;
 export const createProforma = (payload) => {
   return axios.post(`${API_URL}/save-proforma`, payload);
 };
+
+export const getProformaList = () => {
+  return axios.get(`${API_URL}/list`);
+};
+
+export const saveBonCommande = (payload) => {
+  return axios.post(`${API_URL}/save-bc`, payload);
+};
