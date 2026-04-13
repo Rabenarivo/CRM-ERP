@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+
 @RestController
 @RequestMapping("/api/offres")
 @CrossOrigin
@@ -32,5 +33,11 @@ public class OffreController {
     public List<Offre> getOffresByDemande(@PathVariable Long demandeId) {
         return offreService.getOffresByDemande(demandeId);
     }
+
+    @GetMapping("/get-offre")
+    public List<Offre> getAllOffres() {
+        return offreService.getAllOffres();
+    }
+    
 
 }

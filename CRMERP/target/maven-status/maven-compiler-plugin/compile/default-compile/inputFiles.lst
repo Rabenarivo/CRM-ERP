@@ -9,6 +9,7 @@ D:\ITU\PERSO\CRMERP\CRM+ERP\CRMERP\src\main\java\com\example\CRMERP\controller\R
 D:\ITU\PERSO\CRMERP\CRM+ERP\CRMERP\src\main\java\com\example\CRMERP\controller\UserController.java
 D:\ITU\PERSO\CRMERP\CRM+ERP\CRMERP\src\main\java\com\example\CRMERP\controller\WorkflowLogControlle.java
 D:\ITU\PERSO\CRMERP\CRM+ERP\CRMERP\src\main\java\com\example\CRMERP\CrmerpApplication.java
+D:\ITU\PERSO\CRMERP\CRM+ERP\CRMERP\src\main\java\com\example\CRMERP\entity\BonCommande.java
 D:\ITU\PERSO\CRMERP\CRM+ERP\CRMERP\src\main\java\com\example\CRMERP\entity\DemandeAchat.java
 D:\ITU\PERSO\CRMERP\CRM+ERP\CRMERP\src\main\java\com\example\CRMERP\entity\Department.java
 D:\ITU\PERSO\CRMERP\CRM+ERP\CRMERP\src\main\java\com\example\CRMERP\entity\Fournisseur.java
@@ -20,6 +21,7 @@ D:\ITU\PERSO\CRMERP\CRM+ERP\CRMERP\src\main\java\com\example\CRMERP\entity\Stock
 D:\ITU\PERSO\CRMERP\CRM+ERP\CRMERP\src\main\java\com\example\CRMERP\entity\User.java
 D:\ITU\PERSO\CRMERP\CRM+ERP\CRMERP\src\main\java\com\example\CRMERP\entity\users_roles.java
 D:\ITU\PERSO\CRMERP\CRM+ERP\CRMERP\src\main\java\com\example\CRMERP\entity\WorkflowLog.java
+D:\ITU\PERSO\CRMERP\CRM+ERP\CRMERP\src\main\java\com\example\CRMERP\repository\BonCommandeRepository.java
 D:\ITU\PERSO\CRMERP\CRM+ERP\CRMERP\src\main\java\com\example\CRMERP\repository\DemandeAchatRepository.java
 D:\ITU\PERSO\CRMERP\CRM+ERP\CRMERP\src\main\java\com\example\CRMERP\repository\DepartmentRepository.java
 D:\ITU\PERSO\CRMERP\CRM+ERP\CRMERP\src\main\java\com\example\CRMERP\repository\FournisseurRepository.java
@@ -30,6 +32,7 @@ D:\ITU\PERSO\CRMERP\CRM+ERP\CRMERP\src\main\java\com\example\CRMERP\repository\R
 D:\ITU\PERSO\CRMERP\CRM+ERP\CRMERP\src\main\java\com\example\CRMERP\repository\StockMouvementRepository.java
 D:\ITU\PERSO\CRMERP\CRM+ERP\CRMERP\src\main\java\com\example\CRMERP\repository\UserRepository.java
 D:\ITU\PERSO\CRMERP\CRM+ERP\CRMERP\src\main\java\com\example\CRMERP\repository\WorkflowLogRepository.java
+D:\ITU\PERSO\CRMERP\CRM+ERP\CRMERP\src\main\java\com\example\CRMERP\service\BonCommandeService.java
 D:\ITU\PERSO\CRMERP\CRM+ERP\CRMERP\src\main\java\com\example\CRMERP\service\DemandeAchatService.java
 D:\ITU\PERSO\CRMERP\CRM+ERP\CRMERP\src\main\java\com\example\CRMERP\service\DepartmentService.java
 D:\ITU\PERSO\CRMERP\CRM+ERP\CRMERP\src\main\java\com\example\CRMERP\service\OffreService.java

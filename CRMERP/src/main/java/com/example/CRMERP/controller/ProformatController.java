@@ -1,6 +1,7 @@
 package com.example.CRMERP.controller;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.springframework.http.ResponseEntity;
@@ -16,6 +17,9 @@ import com.example.CRMERP.service.DemandeAchatService;
 import com.example.CRMERP.service.ProformaService;
 import com.example.CRMERP.service.WorkflowLogService;
 import jakarta.transaction.Transactional;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+
 
 @RestController
 @RequestMapping("/api/proforma")
@@ -99,4 +103,47 @@ public class ProformatController {
             return ResponseEntity.internalServerError().body("Erreur serveur: " + e.getMessage());
         }
     }
+
+    @GetMapping("/list")
+    public List<Proforma> list() {
+        return proformaService.getEnAttenteValidation();
+    }
+
+    @PostMapping("/save-bc")
+    @Transactional
+    public ResponseEntity<?> saveBc(@RequestBody Map<String, Object> request) {
+        try {
+            Object proformaIdObj = request.get("proformaId");
+            Object statutObj = request.get("statut");
+
+            if (proformaIdObj == null || statutObj == null) {
+                return ResponseEntity.badRequest().body("proformaId et statut sont obligatoires.");
+            }
+
+            Long proformaId = Long.valueOf(proformaIdObj.toString());
+            String statut = statutObj.toString();
+
+            var bonCommande = proformaService.saveBonCommandeFromProforma(proformaId, statut);
+
+            Map<String, Object> response = new HashMap<>();
+            if (bonCommande == null) {
+                response.put("message", "Proforma refusee. Aucun BC cree.");
+                response.put("bonCommande", null);
+            } else {
+                response.put("message", "Proforma acceptee. BC cree et envoye.");
+                response.put("bonCommande", bonCommande);
+            }
+
+            return ResponseEntity.ok(response);
+        } catch (NumberFormatException e) {
+            return ResponseEntity.badRequest().body("proformaId invalide.");
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Erreur serveur: " + e.getMessage());
+        }
+    }
+
+    
+    
 }
