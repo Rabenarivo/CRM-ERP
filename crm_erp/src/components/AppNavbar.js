@@ -11,7 +11,7 @@ const NAV_ITEMS = [
   { label: "Demandes d'achat", path: "/pages/demandes-achat", minScore: 50 },
   { label: "Type 70", path: "/pages/type-70", minScore: 70 },
   { label: "Type 80", path: "/pages/type-80", minScore: 80 },
-  { label: "Type 100", path: "/pages/type-100", minScore: 100 },
+  { label: "Log Admin", path: "/pages/type-100", minScore: 100 },
 ];
 
 export default function AppNavbar() {

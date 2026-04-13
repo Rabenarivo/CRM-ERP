@@ -48,5 +48,9 @@ public class OffreService {
         return offresRepository.findByDemandeId(demandeId);
     }
 
+    public List <Offre> getAllOffres (){
+        return offresRepository.getAllOffres();
+    }
+
   
 }

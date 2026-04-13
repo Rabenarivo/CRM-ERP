@@ -12,3 +12,7 @@ export const createOffre = ({ demandeId, fournisseurId, offre }) => {
 export const getOffresByDemande = (demandeId) => {
   return axios.get(`${API_URL}/demande/${demandeId}`);
 };
+
+export const getAllOffres = () => {
+  return axios.get(`${API_URL}/get-offre`);
+};

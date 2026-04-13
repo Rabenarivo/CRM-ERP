@@ -346,3 +346,25 @@ CREATE TABLE offres (
 -- FROM department_access da
 -- JOIN departments d ON d.id = da.can_view_department_id
 -- WHERE da.department_id = 2;
+
+
+
+
+
+
+SELECT 
+    o.id,
+    o.demande_id,
+    o.fournisseur_id,
+    o.reference,
+    o.delai_livraison,
+    o.validite,
+    o.description,
+    o.statut,
+    o.date_creation
+FROM offres o
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM proformas p
+    WHERE p.demande_id = o.demande_id
+      AND p.fournisseur_id = o.fournisseur_id);
