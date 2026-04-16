@@ -8,6 +8,7 @@ import com.example.CRMERP.repository.FournisseurRepository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 
@@ -38,6 +39,10 @@ public class ProformaService {
 
     public List<Proforma> getAccepteList(){
         return proformaRepository.findByStatut("ACCEPTEE");
+    }
+
+    public Optional<Proforma> getById(Long id){
+        return proformaRepository.findById(id);
     }
 
     public BonCommande saveBonCommandeFromProforma(Long proformaId, String decisionStatut) {

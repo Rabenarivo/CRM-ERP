@@ -118,6 +118,8 @@ public class ProformatController {
     public List<Proforma> getvalide() {
         return proformaService.getAccepteList();
     }
+
+    
     
 
     @PostMapping("/save-bc")
