@@ -5,13 +5,13 @@ import { getUserDepartmentScore } from "../config/departmentScores";
 import { logout } from "../services/authService";
 
 const NAV_ITEMS = [
-  { label: "Dashboard", path: "/dashboard", minScore: 0 },
-  { label: "Type 10", path: "/pages/type-10", minScore: 10 },
-  { label: "Type 50", path: "/pages/type-50", minScore: 50 },
-  { label: "Demandes d'achat", path: "/pages/demandes-achat", minScore: 50 },
-  { label: "Type 70", path: "/pages/type-70", minScore: 70 },
-  { label: "Type 80", path: "/pages/type-80", minScore: 80 },
-  { label: "Log Admin", path: "/pages/type-100", minScore: 100 },
+  { label: "Accueil", path: "/dashboard", minScore: 0 },
+  { label: "Workflow Demande d'achat", path: "/pages/type-10", requiredScore: 10 },
+  { label: "Demande d'achat", path: "/pages/type-50", requiredScore: 50 },
+  { label: "Validation Offres", path: "/pages/type-70", requiredScore: 70 },
+  { label: "Validation Proforma et Envoi BC", path: "/pages/type-80", requiredScore: 80 },
+  { label: "Proformas Acceptees", path: "/pages/type-80-acceptee", requiredScore: 80 },
+  { label: "Creation Proformat (Admin)", path: "/pages/type-100", requiredScore: 100 },
 ];
 
 export default function AppNavbar() {
@@ -43,30 +43,22 @@ export default function AppNavbar() {
               </NavLink>
             </li>
           ) : (
-            NAV_ITEMS.map((item) => {
-              const allowed = userScore >= item.minScore;
-
-              if (!allowed) {
-                return (
-                  <li key={item.path} className="disabled app-navbar__link--locked-item">
-                    <span className="app-navbar__link app-navbar__link--locked">{item.label}</span>
-                  </li>
-                );
-              }
-
-              return (
-                <li key={item.path}>
-                  <NavLink
-                    to={item.path}
-                    className={({ isActive }) =>
-                      `app-navbar__link${isActive ? " app-navbar__link--active" : ""}`
-                    }
-                  >
-                    {item.label}
-                  </NavLink>
-                </li>
-              );
-            })
+            NAV_ITEMS.filter((item) => {
+              return Number.isFinite(item.requiredScore)
+                ? userScore === item.requiredScore
+                : userScore >= item.minScore;
+            }).map((item) => (
+              <li key={item.path}>
+                <NavLink
+                  to={item.path}
+                  className={({ isActive }) =>
+                    `app-navbar__link${isActive ? " app-navbar__link--active" : ""}`
+                  }
+                >
+                  {item.label}
+                </NavLink>
+              </li>
+            ))
           )}
 
           {isAuthenticated ? (

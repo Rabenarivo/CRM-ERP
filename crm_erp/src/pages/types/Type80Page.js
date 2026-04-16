@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { getProformaList, saveBonCommande } from "../../api/proformaApi";
+import { getAllProformas, getProformaList, saveBonCommande } from "../../api/proformaApi";
+import { getBonCommandes } from "../../api/bonCommandeApi";
+import { MiniBarChart, StatGrid, formatMga } from "../../components/StatsWidgets";
 
 export default function Type80Page() {
   const [proformas, setProformas] = useState([]);
@@ -8,6 +10,8 @@ export default function Type80Page() {
   const [selectedProformaId, setSelectedProformaId] = useState("");
   const [decision, setDecision] = useState("ACCEPTEE");
   const [message, setMessage] = useState("");
+  const [allProformas, setAllProformas] = useState([]);
+  const [bonCommandes, setBonCommandes] = useState([]);
 
   const loadProformas = async () => {
     setLoading(true);
@@ -25,10 +29,61 @@ export default function Type80Page() {
     loadProformas();
   }, []);
 
+  useEffect(() => {
+    const loadAnalytics = async () => {
+      const [proformasRes, bcRes] = await Promise.allSettled([
+        getAllProformas(),
+        getBonCommandes(),
+      ]);
+
+      setAllProformas(
+        proformasRes.status === "fulfilled" && Array.isArray(proformasRes.value.data)
+          ? proformasRes.value.data
+          : []
+      );
+      setBonCommandes(
+        bcRes.status === "fulfilled" && Array.isArray(bcRes.value.data)
+          ? bcRes.value.data
+          : []
+      );
+    };
+
+    loadAnalytics();
+  }, []);
+
   const selectedProforma = useMemo(
     () => proformas.find((proforma) => String(proforma.id) === selectedProformaId),
     [proformas, selectedProformaId]
   );
+
+  const pendingBudget = useMemo(
+    () => proformas.reduce((sum, proforma) => sum + Number(proforma?.prix || 0), 0),
+    [proformas]
+  );
+
+  const budgetEngage = useMemo(
+    () =>
+      allProformas
+        .filter((proforma) => String(proforma?.statut || "").toUpperCase() === "ACCEPTEE")
+        .reduce((sum, proforma) => sum + Number(proforma?.prix || 0), 0),
+    [allProformas]
+  );
+
+  const proformasByStatut = useMemo(() => {
+    const counter = new Map();
+    allProformas.forEach((proforma) => {
+      const statut = String(proforma?.statut || "SANS_STATUT");
+      counter.set(statut, (counter.get(statut) || 0) + 1);
+    });
+    return Array.from(counter.entries()).map(([label, value]) => ({ label, value }));
+  }, [allProformas]);
+
+  const statCards = [
+    { label: "Proformas en attente", value: proformas.length },
+    { label: "Budget en attente", value: formatMga(pendingBudget) },
+    { label: "Budget engage", value: formatMga(budgetEngage) },
+    { label: "BC envoyes", value: bonCommandes.length },
+  ];
 
   const handleSave = async (event) => {
     event.preventDefault();
@@ -50,6 +105,21 @@ export default function Type80Page() {
       setMessage(response?.data?.message || "Traitement termine.");
       setSelectedProformaId("");
       await loadProformas();
+
+      const [proformasRes, bcRes] = await Promise.allSettled([
+        getAllProformas(),
+        getBonCommandes(),
+      ]);
+      setAllProformas(
+        proformasRes.status === "fulfilled" && Array.isArray(proformasRes.value.data)
+          ? proformasRes.value.data
+          : []
+      );
+      setBonCommandes(
+        bcRes.status === "fulfilled" && Array.isArray(bcRes.value.data)
+          ? bcRes.value.data
+          : []
+      );
     } catch (error) {
       setMessage(error?.response?.data || "Echec du traitement du proforma.");
     } finally {
@@ -68,6 +138,14 @@ export default function Type80Page() {
       </div>
 
       {message ? <div className="alert alert-info page-alert">{message}</div> : null}
+
+      <StatGrid items={statCards} />
+
+      <MiniBarChart
+        title="Etat des proformas"
+        data={proformasByStatut}
+        emptyLabel="Aucune proforma enregistree."
+      />
 
       <div className="table-responsive">
         <table className="table table-striped table-bordered">

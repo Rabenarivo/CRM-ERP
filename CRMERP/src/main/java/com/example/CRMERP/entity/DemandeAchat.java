@@ -25,7 +25,16 @@ public class DemandeAchat {
     @JoinColumn(name = "user_id")
     private User user;
 
+    @Column(name = "date_creation")
     private LocalDateTime dateCreation = LocalDateTime.now();
+
+
+    @PrePersist
+    public void prePersist() {
+        if (dateCreation == null) {
+            dateCreation = LocalDateTime.now();
+        }
+    }
 
 
     public Long getId() {
@@ -74,5 +83,9 @@ public class DemandeAchat {
 
     public LocalDateTime getDateCreation() {
         return dateCreation;
+    }
+
+    public void setDateCreation(LocalDateTime dateCreation) {
+        this.dateCreation = dateCreation;
     }
 }

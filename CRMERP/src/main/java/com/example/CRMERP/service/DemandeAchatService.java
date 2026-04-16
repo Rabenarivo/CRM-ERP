@@ -26,6 +26,16 @@ public class DemandeAchatService {
             return repo.save(d);
         }
 
+        public DemandeAchat updateStatut(Long id, String statut) {
+            DemandeAchat demande = findById(id);
+            if (demande == null) {
+                return null;
+            }
+
+            demande.setStatut(statut);
+            return repo.save(demande);
+        }
+
        public DemandeAchat findById(Long id) {
             return repo.findById(id).orElse(null);
         }

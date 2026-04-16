@@ -11,6 +11,14 @@ export const getProformaList = () => {
   return axios.get(`${API_URL}/list`);
 };
 
+export const getAllProformas = () => {
+  return axios.get(`${API_URL}/all`);
+};
+
+export const getAcceptedProformas = () => {
+  return axios.get(`${API_URL}/accepte`);
+};
+
 export const saveBonCommande = (payload) => {
   return axios.post(`${API_URL}/save-bc`, payload);
 };

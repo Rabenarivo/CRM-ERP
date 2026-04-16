@@ -96,6 +96,29 @@ public class DemandeAchatController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
+
+    @PatchMapping("/{id}/statut")
+    public ResponseEntity<?> updateStatut(@PathVariable Long id, @RequestBody Map<String, Object> request) {
+        try {
+            Object statutRaw = request.get("statut");
+            if (statutRaw == null) {
+                return ResponseEntity.badRequest().body("statut is required");
+            }
+
+            DemandeAchat demande = service.updateStatut(id, statutRaw.toString());
+            if (demande == null) {
+                return ResponseEntity.notFound().build();
+            }
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("id", demande.getId());
+            response.put("statut", demande.getStatut());
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
     
     
 }

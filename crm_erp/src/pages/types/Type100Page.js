@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { getAllOffres } from "../../api/offreApi";
-import { createProforma } from "../../api/proformaApi";
+import { createProforma, getAllProformas } from "../../api/proformaApi";
+import { MiniBarChart, StatGrid, formatMga } from "../../components/StatsWidgets";
 
 const defaultStatut = "EN_ATTENTE_VALIDATION";
 
@@ -10,6 +11,7 @@ export default function Type100Page() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [selectedOffreId, setSelectedOffreId] = useState("");
+  const [allProformas, setAllProformas] = useState([]);
   const [form, setForm] = useState({
     prix: "",
     delai: "",
@@ -31,10 +33,50 @@ export default function Type100Page() {
     loadOffres();
   }, []);
 
+  useEffect(() => {
+    const loadProformas = async () => {
+      try {
+        const response = await getAllProformas();
+        setAllProformas(Array.isArray(response.data) ? response.data : []);
+      } catch (error) {
+        setAllProformas([]);
+      }
+    };
+
+    loadProformas();
+  }, []);
+
   const selectedOffre = useMemo(
     () => offres.find((offre) => String(offre.id) === selectedOffreId),
     [offres, selectedOffreId]
   );
+
+  const offresByDemande = useMemo(() => {
+    const counter = new Map();
+    offres.forEach((offre) => {
+      const label = `Demande ${offre?.demande?.id || "N/A"}`;
+      counter.set(label, (counter.get(label) || 0) + 1);
+    });
+    return Array.from(counter.entries()).map(([label, value]) => ({ label, value }));
+  }, [offres]);
+
+  const budgetTotal = useMemo(
+    () => allProformas.reduce((sum, proforma) => sum + Number(proforma?.prix || 0), 0),
+    [allProformas]
+  );
+
+  const statCards = [
+    { label: "Offres sans proforma", value: offres.length },
+    {
+      label: "Demandes concernees",
+      value: new Set(offres.map((offre) => String(offre?.demande?.id || ""))).size,
+    },
+    {
+      label: "Fournisseurs concernes",
+      value: new Set(offres.map((offre) => String(offre?.fournisseur?.id || ""))).size,
+    },
+    { label: "Budget proformas cumule", value: formatMga(budgetTotal) },
+  ];
 
   useEffect(() => {
     if (!selectedOffre) {
@@ -92,6 +134,21 @@ export default function Type100Page() {
       setMessage("Proformat cree avec succes.");
       setForm({ prix: "", delai: "", statut: defaultStatut });
       setSelectedOffreId("");
+
+      const [offresResponse, proformasResponse] = await Promise.allSettled([
+        getAllOffres(),
+        getAllProformas(),
+      ]);
+      setOffres(
+        offresResponse.status === "fulfilled" && Array.isArray(offresResponse.value.data)
+          ? offresResponse.value.data
+          : []
+      );
+      setAllProformas(
+        proformasResponse.status === "fulfilled" && Array.isArray(proformasResponse.value.data)
+          ? proformasResponse.value.data
+          : []
+      );
     } catch (error) {
       setMessage(error?.response?.data || "Echec de creation du proformat.");
     } finally {
@@ -104,12 +161,20 @@ export default function Type100Page() {
       <div className="page-card__header">
         <div>
           <p className="page-eyebrow">Score 100</p>
-          <h2>Log Admin - Creation Proformat</h2>
+          <h2>Creation Proformat (Admin)</h2>
         </div>
         <p className="page-muted">Source: GET /api/offres/get-offre | Save: POST /api/proforma/save-proforma</p>
       </div>
 
       {message ? <div className="alert alert-info page-alert">{message}</div> : null}
+
+      <StatGrid items={statCards} />
+
+      <MiniBarChart
+        title="Offres en attente par demande"
+        data={offresByDemande}
+        emptyLabel="Aucune offre a transformer en proforma."
+      />
 
       <div className="table-responsive">
         <table className="table table-striped table-bordered">

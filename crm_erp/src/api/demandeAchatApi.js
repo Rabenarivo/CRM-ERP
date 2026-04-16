@@ -6,3 +6,6 @@ const API_URL = `${API_BASE_URL}/api/demandes-achat`;
 export const getDemandesAchat = () => axios.get(API_URL);
 
 export const createDemandeAchat = (data) => axios.post(API_URL, data);
+
+export const updateDemandeAchatStatut = (id, statut) =>
+	axios.patch(`${API_URL}/${id}/statut`, { statut });

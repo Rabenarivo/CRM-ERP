@@ -3,7 +3,7 @@ import { Navigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import { getUserDepartmentScore } from "../config/departmentScores";
 
-export default function ScoreProtectedRoute({ minScore, children }) {
+export default function ScoreProtectedRoute({ minScore, requiredScore, children }) {
   const { user } = useContext(AuthContext);
 
   if (!user) {
@@ -11,6 +11,10 @@ export default function ScoreProtectedRoute({ minScore, children }) {
   }
 
   const userScore = getUserDepartmentScore(user);
+  if (Number.isFinite(requiredScore) && userScore !== requiredScore) {
+    return <Navigate to="/unauthorized" replace />;
+  }
+
   if (userScore < minScore) {
     return <Navigate to="/unauthorized" replace />;
   }

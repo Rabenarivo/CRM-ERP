@@ -1,14 +1,21 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { getDemandesAchat } from "../../api/demandeAchatApi";
+import { updateDemandeAchatStatut } from "../../api/demandeAchatApi";
 import { filterProduitsByName } from "../../api/produitApi";
 import { getFournisseurs } from "../../api/fournisseurApi";
 import { createOffre } from "../../api/offreApi";
+import { MiniBarChart, StatGrid } from "../../components/StatsWidgets";
 
 const normalizeName = (value) =>
   String(value || "")
     .trim()
     .replace(/\s+/g, " ")
     .toLowerCase();
+
+const isDemandPending = (demande) => {
+  const statut = normalizeName(demande?.statut);
+  return !statut || statut === "en_cours";
+};
 
 export default function Type10Page() {
   const [demandes, setDemandes] = useState([]);
@@ -30,11 +37,38 @@ export default function Type10Page() {
   const [error, setError] = useState("");
   const [offreMessage, setOffreMessage] = useState("");
 
+  const totalQuantite = useMemo(
+    () => demandes.reduce((sum, demande) => sum + Number(demande?.quantite || 0), 0),
+    [demandes]
+  );
+
+  const demandesByProduit = useMemo(() => {
+    const counter = new Map();
+    demandes.forEach((demande) => {
+      const produit = String(demande?.produit || "Produit inconnu");
+      counter.set(produit, (counter.get(produit) || 0) + Number(demande?.quantite || 0));
+    });
+    return Array.from(counter.entries())
+      .map(([label, value]) => ({ label, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 6);
+  }, [demandes]);
+
+  const statCards = [
+    { label: "Demandes a verifier", value: demandes.length },
+    { label: "Quantite totale", value: totalQuantite },
+    { label: "Fournisseurs selectionnes", value: selectedFournisseurIds.length },
+    { label: "Fournisseurs disponibles", value: fournisseurs.length },
+  ];
+
   useEffect(() => {
     const loadDemandes = async () => {
       try {
         const response = await getDemandesAchat();
-        setDemandes(Array.isArray(response.data) ? response.data : []);
+        const pendingDemandes = Array.isArray(response.data)
+          ? response.data.filter(isDemandPending)
+          : [];
+        setDemandes(pendingDemandes);
       } catch (loadError) {
         setError("Impossible de charger la liste des demandes d'achat.");
       } finally {
@@ -100,7 +134,7 @@ export default function Type10Page() {
       if (!produitTrouve) {
         setStockResult({
           available: false,
-          message: "Stock non disponible",
+          message: "Stock = 0. Vous pouvez envoyer la demande d'achat.",
         });
         return;
       }
@@ -140,8 +174,8 @@ export default function Type10Page() {
       return;
     }
 
-    if (!stockResult?.available) {
-      setOffreMessage("Verifiez d'abord le stock avant d'envoyer des offres.");
+    if (!stockResult || stockResult.available) {
+      setOffreMessage("Verifiez d'abord que le stock est egal a 0 pour envoyer la demande d'achat.");
       return;
     }
 
@@ -170,10 +204,24 @@ export default function Type10Page() {
         )
       );
 
-      setOffreMessage(`Offres envoyees avec succes a ${selectedFournisseurIds.length} fournisseurs.`);
+      await updateDemandeAchatStatut(selectedDemande.id, "ENVOYE");
+
+      setDemandes((currentDemandes) =>
+        currentDemandes.filter((demande) => String(demande.id) !== String(selectedDemande.id))
+      );
+      setSelectedDemandeId("");
+      setStockResult(null);
+      setSelectedFournisseurIds([]);
+      setOffreDraft({
+        reference: "",
+        delaiLivraison: "",
+        description: "",
+        validite: "",
+      });
+      setOffreMessage(`Demande d'achat envoyee avec succes a ${selectedFournisseurIds.length} fournisseurs.`);
     } catch (sendError) {
       setOffreMessage(
-        sendError?.response?.data || "Echec de l'envoi des offres aux fournisseurs."
+        sendError?.response?.data || "Echec de l'envoi de la demande d'achat aux fournisseurs."
       );
     } finally {
       setSendingOffres(false);
@@ -193,6 +241,14 @@ export default function Type10Page() {
       </div>
 
       {error ? <div className="alert alert-warning page-alert">{error}</div> : null}
+
+      <StatGrid items={statCards} />
+
+      <MiniBarChart
+        title="Top produits demandes"
+        data={demandesByProduit}
+        emptyLabel="Aucune demande en attente pour le magasinier."
+      />
 
       <div className="workflow-grid">
         <section className="workflow-card">
@@ -264,11 +320,13 @@ export default function Type10Page() {
         </section>
 
         <section className="workflow-card">
-          <h3>Etape 3: Envoyer offres (2 minimum)</h3>
+          <h3>Etape 3: Envoyer la demande d'achat (2 minimum)</h3>
 
           {!selectedDemande ? (
             <p className="page-muted">Selectionnez d'abord une demande.</p>
-          ) : !stockResult?.available ? (
+          ) : stockResult?.available ? (
+            <p className="page-muted">Le stock est disponible. Une demande d'achat n'est envoyee que si le stock est egal a 0.</p>
+          ) : !stockResult ? (
             <p className="page-muted">Verifiez d'abord le stock en etape 2.</p>
           ) : loadingFournisseurs ? (
             <p className="page-muted">Chargement des fournisseurs...</p>
@@ -371,7 +429,7 @@ export default function Type10Page() {
                 onClick={handleEnvoyerOffres}
                 disabled={sendingOffres}
               >
-                {sendingOffres ? "Envoi en cours..." : "Envoyer les offres"}
+                {sendingOffres ? "Envoi en cours..." : "Envoyer la demande d'achat"}
               </button>
 
               {offreMessage ? (

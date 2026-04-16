@@ -23,5 +23,9 @@ public class BonCommandeService {
         this.proformaRepository = proformaRepository;
     }
 
+    public List<BonCommande> findAll() {
+        return bonCommandeRepository.findAll();
+    }
+
     
 }

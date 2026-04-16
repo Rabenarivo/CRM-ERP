@@ -91,29 +91,39 @@ public class ProduitController {
     public ResponseEntity<?> create(@RequestBody Map<String, Object> request) {
         try {
             Object nomRaw = request.get("nom");
-            Object stockRaw = request.get("stock");
-            Object departmentIdRaw = request.get("departmentId");
+            Object stockRaw = request.get("stock"); // compat ancien front
+            Object stockDisponibleRaw = request.get("stockDisponible");
+            Object stockMinRaw = request.get("stockMin");
+            Object departmentIdRaw = request.get("departmentId"); // optionnel
             Object userIdRaw = request.get("userId");
 
-            if (nomRaw == null || stockRaw == null || departmentIdRaw == null || userIdRaw == null) {
-                return ResponseEntity.badRequest().body("nom, stock, departmentId et userId sont requis");
+            if (nomRaw == null || userIdRaw == null) {
+                return ResponseEntity.badRequest().body("nom et userId sont requis");
             }
 
             String nom = nomRaw.toString().trim();
-            Integer stock = Integer.valueOf(stockRaw.toString());
-            Long departmentId = Long.valueOf(departmentIdRaw.toString());
             Long userId = Long.valueOf(userIdRaw.toString());
+
+            int stockDisponible = 0;
+            if (stockDisponibleRaw != null) {
+                stockDisponible = Integer.parseInt(stockDisponibleRaw.toString());
+            } else if (stockRaw != null) {
+                stockDisponible = Integer.parseInt(stockRaw.toString()); // fallback compat
+            }
+
+            int stockMin = 0;
+            if (stockMinRaw != null) {
+                stockMin = Integer.parseInt(stockMinRaw.toString());
+            }
 
             if (nom.isEmpty()) {
                 return ResponseEntity.badRequest().body("nom est requis");
             }
-            if (stock < 0) {
-                return ResponseEntity.badRequest().body("stock doit etre >= 0");
+            if (stockDisponible < 0) {
+                return ResponseEntity.badRequest().body("stockDisponible doit etre >= 0");
             }
-
-            Department department = departmentService.findById(departmentId);
-            if (department == null) {
-                return ResponseEntity.badRequest().body("Department not found");
+            if (stockMin < 0) {
+                return ResponseEntity.badRequest().body("stockMin doit etre >= 0");
             }
 
             User user = userService.findById(userId);
@@ -121,26 +131,44 @@ public class ProduitController {
                 return ResponseEntity.badRequest().body("User not found");
             }
 
+            Department department = null;
+            if (departmentIdRaw != null && !departmentIdRaw.toString().isBlank()) {
+                Long departmentId = Long.valueOf(departmentIdRaw.toString());
+                department = departmentService.findById(departmentId);
+                if (department == null) {
+                    return ResponseEntity.badRequest().body("Department not found");
+                }
+            }
+
             Produit p = new Produit();
             p.setNom(nom);
-            p.setStock(stock);
-            p.setDepartment(department);
+            p.setStockDisponible(stockDisponible);
+            p.setStockReserve(0);
+            p.setStockMin(stockMin);
+            p.setDepartment(department); // null => stock central
 
             Produit savedProduit = service.save(p);
 
-            StockMovement movement = new StockMovement();
-            movement.setProduit(savedProduit);
-            movement.setType("ENTREE");
-            movement.setQuantite(stock);
-            movement.setUser(user);
-            movement.setCommentaire("ENTREE de " + stock + " unites pour le produit " + nom);
-            StockMovement savedMovement = stockMouvementService.save(movement);
+            Long movementId = null;
+            if (stockDisponible > 0) {
+                StockMovement movement = new StockMovement();
+                movement.setProduit(savedProduit);
+                movement.setType("ENTREE_ACHAT");
+                movement.setQuantite(stockDisponible);
+                movement.setUser(user);
+                movement.setCommentaire("Stock initial de " + stockDisponible + " unites pour le produit " + nom);
+
+                StockMovement savedMovement = stockMouvementService.save(movement);
+                movementId = savedMovement.getId();
+            }
 
             Map<String, Object> response = new HashMap<>();
             response.put("produit", savedProduit);
-            response.put("movementId", savedMovement.getId());
-
+            response.put("movementId", movementId);
             return ResponseEntity.ok(response);
+
+        } catch (NumberFormatException e) {
+            return ResponseEntity.badRequest().body("Format numerique invalide pour stock/stockMin/userId/departmentId");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Invalid request: " + e.getMessage());
         }
@@ -179,17 +207,17 @@ public class ProduitController {
                 return ResponseEntity.badRequest().body("User not found");
             }
 
-            int stockActuel = produit.getStock() == null ? 0 : produit.getStock();
+            int stockActuel = produit.getStockDisponible() == null ? 0 : produit.getStockDisponible();
             if (stockActuel < quantite) {
                 return ResponseEntity.badRequest().body("Stock insuffisant");
             }
 
-            produit.setStock(stockActuel - quantite);
+            produit.setStockDisponible(stockActuel - quantite);
             Produit savedProduit = service.save(produit);
 
             StockMovement movement = new StockMovement();
             movement.setProduit(savedProduit);
-            movement.setType("SORTIE");
+            movement.setType("SORTIE_VENTE");
             movement.setQuantite(quantite);
             movement.setUser(user);
             movement.setCommentaire(

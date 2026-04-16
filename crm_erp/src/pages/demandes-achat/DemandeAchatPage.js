@@ -1,6 +1,7 @@
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import { AuthContext } from "../../context/AuthContext";
 import { createDemandeAchat, getDemandesAchat } from "../../api/demandeAchatApi";
+import { MiniBarChart, StatGrid } from "../../components/StatsWidgets";
 
 const initialForm = {
   produit: "",
@@ -14,6 +15,33 @@ export default function DemandeAchatPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+
+  const demandeByStatut = useMemo(() => {
+    const counter = new Map();
+    demandes.forEach((demande) => {
+      const statut = String(demande?.statut || "SANS_STATUT");
+      counter.set(statut, (counter.get(statut) || 0) + 1);
+    });
+    return Array.from(counter.entries()).map(([label, value]) => ({ label, value }));
+  }, [demandes]);
+
+  const totalQuantite = useMemo(
+    () => demandes.reduce((sum, demande) => sum + Number(demande?.quantite || 0), 0),
+    [demandes]
+  );
+
+  const statCards = [
+    { label: "Total demandes", value: demandes.length },
+    { label: "Quantite totale", value: totalQuantite },
+    {
+      label: "Demandes en cours",
+      value: demandes.filter((demande) => String(demande?.statut || "").toUpperCase() === "EN_COURS").length,
+    },
+    {
+      label: "Demandes envoyees",
+      value: demandes.filter((demande) => String(demande?.statut || "").toUpperCase() === "ENVOYE").length,
+    },
+  ];
 
   useEffect(() => {
     const loadDemandes = async () => {
@@ -77,6 +105,14 @@ export default function DemandeAchatPage() {
       </div>
 
       {message ? <div className="alert alert-info page-alert">{message}</div> : null}
+
+      <StatGrid items={statCards} />
+
+      <MiniBarChart
+        title="Statistiques des demandes"
+        data={demandeByStatut}
+        emptyLabel="Aucune demande a analyser."
+      />
 
       <form className="request-form row" onSubmit={handleSubmit}>
         <div className="col-sm-5">
