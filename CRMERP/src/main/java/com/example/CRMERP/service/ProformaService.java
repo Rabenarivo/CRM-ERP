@@ -38,7 +38,7 @@ public class ProformaService {
     }
 
     public List<Proforma> getAccepteList(){
-        return proformaRepository.findByStatut("ACCEPTEE");
+        return proformaRepository.findByStatutAndLivraisonsIsEmpty("ACCEPTEE");
     }
 
     public Optional<Proforma> getById(Long id){

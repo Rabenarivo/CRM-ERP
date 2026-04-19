@@ -1,8 +1,11 @@
 package com.example.CRMERP.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
+
+import java.util.List;
 
 @Entity
 @Table(name = "proformas")
@@ -32,4 +35,8 @@ public class Proforma {
     @JoinColumn(name = "fournisseur_id")
     @JsonIgnoreProperties({"proformas"})
     private Fournisseur fournisseur;
+
+    @OneToMany(mappedBy = "proforma")
+    @JsonIgnore
+    private List<Livraison> livraisons;
 }

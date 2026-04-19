@@ -242,6 +242,15 @@ INSERT INTO departments (nom, scores) VALUES
 ('Magasiner', 10),
 ('Livreur', 60);
 
+INSERT INTO departments (nom, scores) VALUES
+('Admin', 120);
+
+
+
+
+INSERT INTO users (nom, email, password, enabled, department_id) VALUES
+('Admin Directeur', 'admin@company.com', '1234', TRUE, 8);
+
 -- Roles
 INSERT INTO roles (nom) VALUES
 ('ADMIN'),
@@ -259,6 +268,12 @@ INSERT INTO users (nom, email, password, enabled, department_id) VALUES
 ('Kevin IT', 'it@company.com', '1234', TRUE, 5),
 ('Tojo Magasiner', 'magasiner@company.com', '1234', TRUE, 6),
 ('David Livreur', 'livreur@company.com', '1234', TRUE, 7);
+
+
+INSERT INTO users (nom, email, password, enabled,entreprise_id, department_id) VALUES
+('Livreur 2', 'livreur2@company.com', '1234', TRUE,2, 7);
+INSERT INTO users (nom, email, password, enabled,entreprise_id, department_id) VALUES
+('Livreur 3', 'livreur3@company.com', '1234', TRUE,1, 7);
 
 -- User Roles
 INSERT INTO user_roles VALUES

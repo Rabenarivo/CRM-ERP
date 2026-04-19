@@ -34,14 +34,29 @@ const formatCurrency = (value) => {
   }).format(amount);
 };
 
-export const generateFacturePdf = (facture, entrepriseName = "Entreprise") => {
+const renderFacturePage = (doc, facture, entrepriseName = "Entreprise") => {
   if (!facture) {
     throw new Error("Facture introuvable pour l'export PDF.");
   }
 
-  const doc = new jsPDF("p", "mm", "a4");
+  const produitLivre =
+    facture?.livraison?.proforma?.demande?.produit ||
+    facture?.livraison?.proforma?.demande?.produitNom ||
+    facture?.livraison?.proforma?.produit ||
+    facture?.produit ||
+    "-";
+  const quantiteLivree =
+    facture?.livraison?.proforma?.demande?.quantite ??
+    facture?.livraison?.quantite ??
+    facture?.quantite ??
+    1;
+
+  const livraisonsReference = facture?.livraison?.reference || facture?.livraison?.id || "-";
+
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
+  const bodyFontSize = 10;
+  const sectionFontSize = 10;
 
   const primary = [22, 74, 108];
   const accent = [18, 183, 206];
@@ -62,15 +77,15 @@ export const generateFacturePdf = (facture, entrepriseName = "Entreprise") => {
   doc.setFont("helvetica", "bold");
   doc.setFontSize(20);
   doc.text("FACTURE", 14, 16);
-  doc.setFontSize(10);
+  doc.setFontSize(bodyFontSize);
   doc.setFont("helvetica", "normal");
   doc.text(`Export genere automatiquement le ${formatDateTime(new Date())}`, 14, 24);
 
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(12);
+  doc.setFontSize(bodyFontSize);
   doc.text(entrepriseName, pageWidth - 14, 14, { align: "right" });
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(9);
+  doc.setFontSize(bodyFontSize);
   doc.text("Document comptable professionnel", pageWidth - 14, 20, { align: "right" });
 
   doc.setTextColor(...text);
@@ -78,33 +93,22 @@ export const generateFacturePdf = (facture, entrepriseName = "Entreprise") => {
   const topY = 48;
   const boxWidth = (pageWidth - 42) / 2;
 
-  const drawTag = (x, y, label, value) => {
-    doc.setFillColor(...soft);
-    doc.roundedRect(x, y, 26, 10, 2, 2, "F");
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(7);
-    doc.setTextColor(...primary);
-    doc.text(label, x + 13, y + 4, { align: "center" });
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(...text);
-    doc.text(value, x + 13, y + 8, { align: "center" });
-  };
-
-  const drawInfoBox = (x, y, title, lines) => {
+  const drawInfoBox = (x, y, title, lines, boxHeight = 38) => {
     doc.setDrawColor(220, 226, 232);
     doc.setFillColor(255, 255, 255);
-    doc.roundedRect(x, y, boxWidth, 38, 4, 4, "FD");
+    doc.roundedRect(x, y, boxWidth, boxHeight, 4, 4, "FD");
     doc.setFillColor(...soft);
     doc.roundedRect(x + 1.5, y + 1.5, boxWidth - 3, 8, 3, 3, "F");
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(11);
+    doc.setFontSize(sectionFontSize);
     doc.setTextColor(...primary);
     doc.text(title, x + 4, y + 7);
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
+    doc.setFontSize(bodyFontSize);
     doc.setTextColor(...text);
     lines.forEach((line, index) => {
-      doc.text(line, x + 4, y + 14 + index * 5);
+      const wrapped = doc.splitTextToSize(line, boxWidth - 8);
+      doc.text(wrapped, x + 4, y + 14 + index * 5);
     });
   };
 
@@ -116,28 +120,26 @@ export const generateFacturePdf = (facture, entrepriseName = "Entreprise") => {
 
   drawInfoBox(14 + boxWidth + 14, topY, "Client & livraison", [
     `Client: ${facture.client?.nom || "-"}`,
-    `Livraison: ${facture.livraison?.reference || facture.livraison?.id || "-"}`,
+    `Livraison: ${livraisonsReference}`,
+    `Produit livre: ${produitLivre}`,
+    `Quantite livree: ${quantiteLivree}`,
     `Echeance: ${formatDate(facture.dateEcheance)}`,
-  ]);
-
-  drawTag(14, 87, "REF", String(facture.reference || "-").slice(0, 18));
-  drawTag(43, 87, "TTC", String(formatCurrency(facture.montantTtc)));
-  drawTag(99, 87, "STATUT", String(facture.statut || "-").slice(0, 18));
+  ], 52);
 
   autoTable(doc, {
-    startY: 100,
+    startY: 108,
     head: [["Designation", "Reference", "Quantite", "PU", "Total"]],
     body: [[
-      `Livraison ${facture.livraison?.reference || facture.livraison?.id || "-"}`,
-      facture.reference || "-",
-      "1",
+      produitLivre,
+      livraisonsReference,
+      String(quantiteLivree),
       formatCurrency(facture.montantHt),
       formatCurrency(facture.montantTtc),
     ]],
     theme: "grid",
     styles: {
       font: "helvetica",
-      fontSize: 10,
+      fontSize: bodyFontSize,
       cellPadding: 3,
       textColor: text,
       lineColor: [220, 226, 232],
@@ -149,50 +151,52 @@ export const generateFacturePdf = (facture, entrepriseName = "Entreprise") => {
       fontStyle: "bold",
     },
     columnStyles: {
-      0: { cellWidth: 72 },
-      1: { cellWidth: 38 },
-      2: { halign: "center" },
-      3: { halign: "right" },
-      4: { halign: "right" },
+      0: { cellWidth: 54 },
+      1: { cellWidth: 32 },
+      2: { halign: "center", cellWidth: 18 },
+      3: { halign: "right", cellWidth: 39 },
+      4: { halign: "right", cellWidth: 39 },
     },
     margin: { left: 14, right: 14 },
   });
 
   const totalY = doc.lastAutoTable?.finalY ? doc.lastAutoTable.finalY + 10 : 122;
+  const summaryX = 14;
+  const summaryY = totalY;
+  const summaryWidth = pageWidth - 28;
+  const summaryHeight = 30;
+
   doc.setFillColor(...light);
-  doc.roundedRect(112, totalY, 84, 38, 5, 5, "F");
+  doc.roundedRect(summaryX, summaryY, summaryWidth, summaryHeight, 5, 5, "F");
   doc.setDrawColor(220, 226, 232);
-  doc.roundedRect(112, totalY, 84, 38, 5, 5, "S");
+  doc.roundedRect(summaryX, summaryY, summaryWidth, summaryHeight, 5, 5, "S");
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(11);
+  doc.setFontSize(sectionFontSize);
   doc.setTextColor(...primary);
-  doc.text("Synthese montant", 118, totalY + 9);
-  doc.setFontSize(10);
+  doc.text("Synthese montant", summaryX + 4, summaryY + 8);
+  doc.setFontSize(bodyFontSize);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(...text);
-  doc.text(`HT: ${formatCurrency(facture.montantHt)}`, 118, totalY + 17);
-  doc.text(`TVA: ${formatCurrency(facture.tva)}`, 118, totalY + 23);
+  doc.text(`HT: ${formatCurrency(facture.montantHt)}`, summaryX + 4, summaryY + 16);
+  doc.text(`TVA: ${formatCurrency(facture.tva)}`, summaryX + 60, summaryY + 16);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(...primary);
-  doc.text(`TTC: ${formatCurrency(facture.montantTtc)}`, 118, totalY + 31);
-
-  doc.setFillColor(...accent);
-  doc.roundedRect(147, totalY + 11, 35, 14, 4, 4, "F");
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(8);
-  doc.text("FACTURE", 164.5, totalY + 17, { align: "center" });
+  doc.text(`TTC: ${formatCurrency(facture.montantTtc)}`, summaryX + 120, summaryY + 16);
 
   doc.setTextColor(90, 96, 105);
   doc.setFont("helvetica", "italic");
-  doc.setFontSize(8);
-  doc.text(`Client: ${facture.client?.nom || "-"}`, 14, totalY + 18);
-  doc.text(`Livraison: ${facture.livraison?.reference || facture.livraison?.id || "-"}`, 14, totalY + 24);
+  doc.setFontSize(bodyFontSize);
+  doc.text(
+    `Produit: ${produitLivre} | Quantite: ${quantiteLivree}`,
+    summaryX + 4,
+    summaryY + 24
+  );
 
   doc.setDrawColor(...accent);
   doc.setLineWidth(0.4);
   doc.line(14, pageHeight - 24, pageWidth - 14, pageHeight - 24);
   doc.setFont("helvetica", "italic");
-  doc.setFontSize(8);
+  doc.setFontSize(bodyFontSize);
   doc.setTextColor(90, 96, 105);
   doc.text(
     "CRM ERP - Facture exportee automatiquement depuis le workflow livraison -> facture",
@@ -201,8 +205,34 @@ export const generateFacturePdf = (facture, entrepriseName = "Entreprise") => {
     { align: "center" }
   );
 
-  const safeName = String(facture.reference || `facture-${facture.id || "export"}`)
+};
+
+export const generateFacturePdf = (facture, entrepriseName = "Entreprise") => {
+  const doc = new jsPDF("p", "mm", "a4");
+  renderFacturePage(doc, facture, entrepriseName);
+
+  const safeName = String(facture?.reference || `facture-${facture?.id || "export"}`)
     .replace(/[^a-z0-9\-_.]+/gi, "_")
     .toLowerCase();
   doc.save(`${safeName}.pdf`);
+};
+
+export const generateFactureLotPdf = (factures, entrepriseName = "Entreprise", lotLabel = "lot") => {
+  const facturesList = Array.isArray(factures) ? factures.filter(Boolean) : [];
+  if (facturesList.length === 0) {
+    throw new Error("Aucune facture disponible pour l'export PDF du lot.");
+  }
+
+  const doc = new jsPDF("p", "mm", "a4");
+  facturesList.forEach((facture, index) => {
+    if (index > 0) {
+      doc.addPage();
+    }
+    renderFacturePage(doc, facture, entrepriseName);
+  });
+
+  const safeLot = String(lotLabel || "lot")
+    .replace(/[^a-z0-9\-_.]+/gi, "_")
+    .toLowerCase();
+  doc.save(`factures-lot-${safeLot}.pdf`);
 };

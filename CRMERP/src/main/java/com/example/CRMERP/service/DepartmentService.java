@@ -27,4 +27,8 @@ public class DepartmentService {
     public Department findById(Long id) {
         return repo.findById(id).orElse(null);
     }
+
+    public void deleteById(Long id) {
+        repo.deleteById(id);
+    }
 }

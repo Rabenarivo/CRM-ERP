@@ -13,6 +13,7 @@ const NAV_ITEMS = [
   { label: "Validation Proforma et Envoi BC", path: "/pages/type-80", requiredScore: 80 },
   { label: "Proformas Acceptees", path: "/pages/type-80-acceptee", requiredScore: 80 },
   { label: "Creation Proformat (Admin)", path: "/pages/type-100", requiredScore: 100 },
+  { label: "Administration complete", path: "/pages/type-120", requiredScore: 120 },
 ];
 
 export default function AppNavbar() {

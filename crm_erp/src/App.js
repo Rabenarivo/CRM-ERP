@@ -9,6 +9,7 @@ import Type70Page from "./pages/types/Type70Page";
 import Type80Page from "./pages/types/Type80Page";
 import Type80AcceptedPage from "./pages/types/Type80AcceptedPage";
 import Type100Page from "./pages/types/Type100Page";
+import Type120Page from "./pages/types/Type120Page";
 import Type60Page from "./pages/types/Type60Page";
 import DemandeAchatPage from "./pages/demandes-achat/DemandeAchatPage";
 import PageLayout from "./components/PageLayout";
@@ -105,6 +106,14 @@ function App() {
             element={
               <ProtectedPage requiredScore={100}>
                 <Type100Page />
+              </ProtectedPage>
+            }
+          />
+          <Route
+            path="/pages/type-120"
+            element={
+              <ProtectedPage requiredScore={120}>
+                <Type120Page />
               </ProtectedPage>
             }
           />

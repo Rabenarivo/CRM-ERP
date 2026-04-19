@@ -20,7 +20,7 @@ const isDemandPending = (demande) => {
 export default function Type10Page() {
   const [demandes, setDemandes] = useState([]);
   const [fournisseurs, setFournisseurs] = useState([]);
-  const [selectedDemandeId, setSelectedDemandeId] = useState("");
+  const [selectedLotKey, setSelectedLotKey] = useState("");
   const [loadingDemandes, setLoadingDemandes] = useState(true);
   const [loadingFournisseurs, setLoadingFournisseurs] = useState(true);
   const [fournisseurError, setFournisseurError] = useState("");
@@ -61,6 +61,35 @@ export default function Type10Page() {
     { label: "Fournisseurs disponibles", value: fournisseurs.length },
   ];
 
+  const groupedDemandes = useMemo(() => {
+    const groups = new Map();
+
+    demandes.forEach((demande) => {
+      const key = demande?.batchReference
+        ? `batch-${demande.batchReference}`
+        : `single-${demande.id}`;
+      const existing = groups.get(key);
+
+      if (existing) {
+        existing.items.push(demande);
+        existing.totalQuantite += Number(demande?.quantite || 0);
+      } else {
+        groups.set(key, {
+          key,
+          batchReference: demande?.batchReference || null,
+          items: [demande],
+          totalQuantite: Number(demande?.quantite || 0),
+        });
+      }
+    });
+
+    return Array.from(groups.values()).sort((a, b) => {
+      const dateA = new Date(a.items[0]?.dateCreation || 0).getTime();
+      const dateB = new Date(b.items[0]?.dateCreation || 0).getTime();
+      return dateB - dateA;
+    });
+  }, [demandes]);
+
   useEffect(() => {
     const loadDemandes = async () => {
       try {
@@ -98,12 +127,10 @@ export default function Type10Page() {
     loadFournisseurs();
   }, []);
 
-  const selectedDemande = demandes.find(
-    (demande) => String(demande.id) === String(selectedDemandeId)
-  );
+  const selectedLot = groupedDemandes.find((lot) => String(lot.key) === String(selectedLotKey));
 
   const handleCheckStock = async () => {
-    if (!selectedDemande?.produit) {
+    if (!selectedLot || selectedLot.items.length === 0) {
       setStockResult(null);
       return;
     }
@@ -112,36 +139,46 @@ export default function Type10Page() {
     setCheckingStock(true);
 
     try {
-      const demandeProduitName = normalizeName(selectedDemande.produit);
-      const response = await filterProduitsByName(demandeProduitName);
-      const produits = Array.isArray(response.data) ? response.data : [];
-      const produitsCompatibles = produits.filter((produit) => {
-        const produitName = normalizeName(produit?.nom);
-        return (
-          produitName.includes(demandeProduitName) ||
-          demandeProduitName.includes(produitName)
-        );
-      });
+      const checks = await Promise.all(
+        selectedLot.items.map(async (demande) => {
+          const demandeProduitName = normalizeName(demande?.produit);
+          const response = await filterProduitsByName(demandeProduitName);
+          const produits = Array.isArray(response.data) ? response.data : [];
+          const produitsCompatibles = produits.filter((produit) => {
+            const produitName = normalizeName(produit?.nom);
+            return (
+              produitName.includes(demandeProduitName) ||
+              demandeProduitName.includes(produitName)
+            );
+          });
 
-      const produitCompatibleTrouve = produitsCompatibles.find(
-        (produit) => Number(produit?.stock ?? 0) > 0
+          const produitCompatibleTrouve = produitsCompatibles.find(
+            (produit) => Number(produit?.stock ?? produit?.stockDisponible ?? 0) > 0
+          );
+
+          const produitTrouve = produitCompatibleTrouve || produits.find(
+            (produit) => Number(produit?.stock ?? produit?.stockDisponible ?? 0) > 0
+          );
+
+          return {
+            demandeId: demande.id,
+            produitDemande: demande.produit,
+            quantiteDemande: demande.quantite,
+            available: Boolean(produitTrouve),
+            produitStock: produitTrouve || null,
+          };
+        })
       );
 
-      const produitTrouve = produitCompatibleTrouve || produits.find(
-        (produit) => Number(produit?.stock ?? 0) > 0
-      );
-
-      if (!produitTrouve) {
-        setStockResult({
-          available: false,
-          message: "Stock = 0. Vous pouvez envoyer la demande d'achat.",
-        });
-        return;
-      }
+      const stockDisponible = checks.some((check) => check.available);
 
       setStockResult({
-        available: true,
-        produit: produitTrouve,
+        checks,
+        available: stockDisponible,
+        allUnavailable: !stockDisponible,
+        message: stockDisponible
+          ? "Au moins un produit est disponible en stock."
+          : "Stock = 0 pour tous les produits du lot. Vous pouvez envoyer la demande d'achat.",
       });
       setOffreMessage("");
     } catch (checkError) {
@@ -169,13 +206,8 @@ export default function Type10Page() {
   const handleEnvoyerOffres = async () => {
     setOffreMessage("");
 
-    if (!selectedDemande) {
-      setOffreMessage("Selectionnez une demande d'achat.");
-      return;
-    }
-
-    if (!stockResult || stockResult.available) {
-      setOffreMessage("Verifiez d'abord que le stock est egal a 0 pour envoyer la demande d'achat.");
+    if (!selectedLot || selectedLot.items.length === 0) {
+      setOffreMessage("Selectionnez un lot de demande d'achat.");
       return;
     }
 
@@ -190,26 +222,37 @@ export default function Type10Page() {
       const payload = {
         reference: offreDraft.reference || `OFFRE-${Date.now()}`,
         delaiLivraison: offreDraft.delaiLivraison ? Number(offreDraft.delaiLivraison) : 0,
-        description: offreDraft.description || `Offre envoyee pour ${selectedDemande.produit}`,
+        description: offreDraft.description || `Offre envoyee pour le lot ${selectedLot.batchReference || selectedLot.key}`,
         validite: offreDraft.validite || null,
       };
 
       await Promise.all(
-        selectedFournisseurIds.map((fournisseurId) =>
-          createOffre({
-            demandeId: selectedDemande.id,
-            fournisseurId: Number(fournisseurId),
-            offre: payload,
-          })
+        selectedFournisseurIds.flatMap((fournisseurId) =>
+          selectedLot.items.map((demande) =>
+            createOffre({
+              demandeId: demande.id,
+              fournisseurId: Number(fournisseurId),
+              offre: {
+                ...payload,
+                description:
+                  offreDraft.description ||
+                  `Offre envoyee pour ${demande.produit} (lot ${selectedLot.batchReference || selectedLot.key})`,
+              },
+            })
+          )
         )
       );
 
-      await updateDemandeAchatStatut(selectedDemande.id, "ENVOYE");
+      await Promise.all(
+        selectedLot.items.map((demande) => updateDemandeAchatStatut(demande.id, "ENVOYE"))
+      );
+
+      const idsToRemove = new Set(selectedLot.items.map((demande) => String(demande.id)));
 
       setDemandes((currentDemandes) =>
-        currentDemandes.filter((demande) => String(demande.id) !== String(selectedDemande.id))
+        currentDemandes.filter((demande) => !idsToRemove.has(String(demande.id)))
       );
-      setSelectedDemandeId("");
+      setSelectedLotKey("");
       setStockResult(null);
       setSelectedFournisseurIds([]);
       setOffreDraft({
@@ -218,7 +261,9 @@ export default function Type10Page() {
         description: "",
         validite: "",
       });
-      setOffreMessage(`Demande d'achat envoyee avec succes a ${selectedFournisseurIds.length} fournisseurs.`);
+      setOffreMessage(
+        `Lot ${selectedLot.batchReference || selectedLot.key} envoye avec succes a ${selectedFournisseurIds.length} fournisseurs.`
+      );
     } catch (sendError) {
       setOffreMessage(
         sendError?.response?.data || "Echec de l'envoi de la demande d'achat aux fournisseurs."
@@ -255,27 +300,32 @@ export default function Type10Page() {
           <h3>Etape 1: Liste des demandes d'achat</h3>
           {loadingDemandes ? (
             <p className="page-muted">Chargement...</p>
-          ) : demandes.length === 0 ? (
+          ) : groupedDemandes.length === 0 ? (
             <p className="page-muted">Aucune demande disponible.</p>
           ) : (
             <div className="workflow-list">
-              {demandes.map((demande) => {
-                const isActive = String(demande.id) === String(selectedDemandeId);
+              {groupedDemandes.map((lot) => {
+                const isActive = String(lot.key) === String(selectedLotKey);
+                const produitsResume = lot.items
+                  .map((demande) => `${demande.produit} (${demande.quantite})`)
+                  .join(", ");
                 return (
                   <button
-                    key={demande.id}
+                    key={lot.key}
                     type="button"
                     className={`workflow-item btn btn-default${isActive ? " workflow-item--active" : ""}`}
                     onClick={() => {
-                      setSelectedDemandeId(String(demande.id));
+                      setSelectedLotKey(String(lot.key));
                       setStockResult(null);
                       setSelectedFournisseurIds([]);
                       setOffreMessage("");
                     }}
                   >
-                    <strong>#{demande.id} - {demande.produit}</strong>
-                    <span>Quantite demandee: {demande.quantite}</span>
-                    <span>Statut: {demande.statut || "-"}</span>
+                    <strong>
+                      {lot.batchReference ? `Lot ${lot.batchReference}` : `Demande #${lot.items[0]?.id || "-"}`}
+                    </strong>
+                    <span>Lignes: {lot.items.length} · Quantite totale: {lot.totalQuantite}</span>
+                    <span>{produitsResume}</span>
                   </button>
                 );
               })}
@@ -285,12 +335,14 @@ export default function Type10Page() {
 
         <section className="workflow-card">
           <h3>Etape 2: Verification stock produit</h3>
-          {!selectedDemande ? (
-            <p className="page-muted">Selectionnez une demande pour commencer.</p>
+          {!selectedLot ? (
+            <p className="page-muted">Selectionnez un lot pour commencer.</p>
           ) : (
             <>
               <p className="page-muted">
-                Produit demande: <strong>{selectedDemande.produit}</strong>
+                {selectedLot.batchReference
+                  ? `Lot en cours: ${selectedLot.batchReference}`
+                  : `Demande #${selectedLot.items[0]?.id || "-"}`}
               </p>
 
               <button
@@ -305,13 +357,21 @@ export default function Type10Page() {
               {stockResult ? (
                 stockResult.available ? (
                   <div className="workflow-result workflow-result--ok alert alert-success">
-                    <strong>Produit disponible en stock</strong>
-                    <p>Produit: {stockResult.produit.nom}</p>
-                    <p>Stock actuel: {stockResult.produit.stock}</p>
+                    <strong>Au moins un produit du lot est disponible en stock</strong>
+                    {stockResult.checks.map((check) => (
+                      <p key={check.demandeId}>
+                        {check.produitDemande}: {check.available ? `Stock ${check.produitStock?.stock ?? check.produitStock?.stockDisponible ?? 0}` : "Stock 0"}
+                      </p>
+                    ))}
                   </div>
                 ) : (
                   <div className="workflow-result workflow-result--ko alert alert-danger">
                     <strong>{stockResult.message}</strong>
+                    {stockResult.checks.map((check) => (
+                      <p key={check.demandeId}>
+                        {check.produitDemande}: Stock 0
+                      </p>
+                    ))}
                   </div>
                 )
               ) : null}
@@ -322,12 +382,8 @@ export default function Type10Page() {
         <section className="workflow-card">
           <h3>Etape 3: Envoyer la demande d'achat (2 minimum)</h3>
 
-          {!selectedDemande ? (
-            <p className="page-muted">Selectionnez d'abord une demande.</p>
-          ) : stockResult?.available ? (
-            <p className="page-muted">Le stock est disponible. Une demande d'achat n'est envoyee que si le stock est egal a 0.</p>
-          ) : !stockResult ? (
-            <p className="page-muted">Verifiez d'abord le stock en etape 2.</p>
+          {!selectedLot ? (
+            <p className="page-muted">Selectionnez d'abord un lot.</p>
           ) : loadingFournisseurs ? (
             <p className="page-muted">Chargement des fournisseurs...</p>
           ) : fournisseurError ? (
@@ -347,6 +403,20 @@ export default function Type10Page() {
             </div>
           ) : (
             <>
+              <div className="alert alert-info">
+                <strong>Envoi autorise:</strong> la demande d'achat peut etre envoyee meme si un seul produit du lot est disponible en stock, ou si aucun n'est disponible.
+              </div>
+
+              {stockResult ? (
+                <p className="page-muted">
+                  {stockResult.available
+                    ? "Au moins un produit du lot est disponible en stock."
+                    : "Aucun produit du lot n'est disponible en stock."}
+                </p>
+              ) : (
+                <p className="page-muted">La verification du stock reste facultative avant l'envoi.</p>
+              )}
+
               <div className="form-group">
                 <label htmlFor="reference">Reference</label>
                 <input

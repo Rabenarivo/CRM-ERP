@@ -3,12 +3,8 @@ import axios from "axios";
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:8080";
 const API_URL = `${API_BASE_URL}/api/livraisons`;
 
-export const createLivraison = (payload, connectedUserId) => {
-  return axios.post(`${API_URL}/save_livraison`, payload, {
-    headers: {
-      "X-User-Id": connectedUserId,
-    },
-  });
+export const createLivraison = (payload) => {
+  return axios.post(`${API_URL}/save_livraison`, payload);
 };
 
 export const getLivraisonList = () => {
@@ -17,18 +13,16 @@ export const getLivraisonList = () => {
 
 export const getEnterpriseLivraisons = (connectedUserId) => {
   return axios.get(`${API_URL}/entreprise`, {
-    headers: {
-      "X-User-Id": connectedUserId,
-    },
+    params: { userId: connectedUserId },
   });
 };
 
 export const assignLivraison = (id, connectedUserId) => {
-  return axios.patch(`${API_URL}/${id}/assign`, null, {
-    headers: {
-      "X-User-Id": connectedUserId,
-    },
-  });
+  return axios.patch(`${API_URL}/${id}/assign`, { userId: connectedUserId });
+};
+
+export const markLivraisonLivree = (id, payload) => {
+  return axios.patch(`${API_URL}/${id}/livree`, payload);
 };
 
 export const getLivraisonById = (id) => {

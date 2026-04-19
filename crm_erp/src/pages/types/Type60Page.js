@@ -1,9 +1,9 @@
 import { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { AuthContext } from "../../context/AuthContext";
-import { getEnterpriseLivraisons } from "../../api/livraisonApi";
+import { getEnterpriseLivraisons, markLivraisonLivree } from "../../api/livraisonApi";
 import { createFactureFromLivraison, getEnterpriseFactures } from "../../api/factureApi";
 import { MiniBarChart, StatGrid, formatMga } from "../../components/StatsWidgets";
-import { generateFacturePdf } from "../../utils/facturePdf";
+import { generateFactureLotPdf } from "../../utils/facturePdf";
 
 export default function Type60Page() {
   const { user } = useContext(AuthContext);
@@ -97,60 +97,174 @@ export default function Type60Page() {
     ];
   }, [factures]);
 
-  const handleLivree = async (livraisonId) => {
+  const groupedFactures = useMemo(() => {
+    const groups = new Map();
+
+    factures.forEach((facture) => {
+      const livraison = facture?.livraison || null;
+      const clientId = facture?.client?.id || "N/A";
+      const batchReference = livraison?.proforma?.demande?.batchReference || null;
+      const referenceRoot = String(livraison?.reference || livraison?.id || "-").replace(/-\d+$/, "");
+      const lotLabel = batchReference || referenceRoot;
+      const key = `lot-${lotLabel}-client-${clientId}`;
+
+      const produit = livraison?.proforma?.demande?.produit || "-";
+      const quantite = Number(livraison?.proforma?.demande?.quantite || 0);
+
+      const existing = groups.get(key);
+      if (existing) {
+        existing.factures.push(facture);
+        existing.factureIds.push(facture.id);
+        existing.references.push(facture.reference || "-");
+        existing.livraisonIds.push(livraison?.id || "-");
+        existing.produits.push(`${produit} (${quantite || "-"})`);
+        existing.totalMontantTtc += Number(facture?.montantTtc || 0);
+        existing.statuses.push(String(facture?.statut || "-"));
+        return;
+      }
+
+      groups.set(key, {
+        key,
+        lotLabel,
+        clientNom: facture?.client?.nom || "-",
+        factures: [facture],
+        factureIds: [facture.id],
+        references: [facture.reference || "-"],
+        livraisonIds: [livraison?.id || "-"],
+        produits: [`${produit} (${quantite || "-"})`],
+        totalMontantTtc: Number(facture?.montantTtc || 0),
+        statuses: [String(facture?.statut || "-")],
+      });
+    });
+
+    return Array.from(groups.values());
+  }, [factures]);
+
+  const groupedLivraisons = useMemo(() => {
+    const groups = new Map();
+
+    livraisons.forEach((livraison) => {
+      const entrepriseId = livraison?.entreprise?.id || "N/A";
+      const batchReference = livraison?.proforma?.demande?.batchReference || null;
+      const referenceRoot = String(livraison?.reference || livraison?.id || "-").replace(/-\d+$/, "");
+      const lotLabel = batchReference || referenceRoot;
+      const key = `lot-${lotLabel}-ent-${entrepriseId}`;
+
+      const produit = livraison?.proforma?.demande?.produit || "-";
+      const quantite = Number(livraison?.proforma?.demande?.quantite || 0);
+
+      const existing = groups.get(key);
+      if (existing) {
+        existing.livraisons.push(livraison);
+        existing.ids.push(livraison.id);
+        existing.references.push(livraison.reference || "-");
+        existing.commandeIds.push(livraison?.commande?.id || "-");
+        existing.quantiteTotale += quantite;
+        existing.produits.push(`${produit} (${quantite || "-"})`);
+        return;
+      }
+
+      groups.set(key, {
+        key,
+        lotLabel,
+        entrepriseNom: livraison?.entreprise?.nom || "-",
+        date: livraison?.dateLivraison || livraison?.dateCreation || "-",
+        livraisons: [livraison],
+        ids: [livraison.id],
+        references: [livraison.reference || "-"],
+        commandeIds: [livraison?.commande?.id || "-"],
+        quantiteTotale: quantite,
+        produits: [`${produit} (${quantite || "-"})`],
+      });
+    });
+
+    return Array.from(groups.values());
+  }, [livraisons]);
+
+  const getGroupStatut = (group) => {
+    const statuts = (group?.livraisons || []).map((item) => String(item?.statut || "").toUpperCase());
+    if (statuts.length === 0) return "-";
+    if (statuts.every((s) => s === "LIVREE")) return "LIVREE";
+    if (statuts.some((s) => s === "EN_COURS")) return "EN_COURS";
+    if (statuts.some((s) => s === "BROUILLON")) return "BROUILLON";
+    return Array.from(new Set(statuts)).join(", ");
+  };
+
+  const handleLivree = async (group) => {
     if (!user?.id) {
       setError("Utilisateur non connecté.");
       return;
     }
 
     try {
-      setWorkingId(livraisonId);
+      setWorkingId(group.key);
       setMessage("");
       setError("");
 
-      const response = await fetch(
-        `${process.env.REACT_APP_API_BASE_URL || "http://localhost:8080"}/api/livraisons/${livraisonId}/livree`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            "X-User-Id": user.id,
-          },
-        }
+      await Promise.all(
+        group.livraisons
+          .filter((livraison) => {
+            const statut = String(livraison?.statut || "").toUpperCase();
+            return statut === "BROUILLON" || statut === "EN_COURS";
+          })
+          .map((livraison) =>
+            markLivraisonLivree(livraison.id, {
+              userId: user.id,
+            })
+          )
       );
 
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data?.message || "Erreur lors du changement d'etat.");
-      }
-
-      setMessage(data?.message || "Livraison marquée livree.");
+      setMessage(`Lot ${group.lotLabel} marque LIVREE.`);
       await loadData();
     } catch (stateError) {
-      setError(stateError.message || "Erreur lors du changement d'etat.");
+      setError(stateError?.response?.data?.message || stateError.message || "Erreur lors du changement d'etat.");
     } finally {
       setWorkingId(null);
     }
   };
 
-  const handleCreateFacture = async (livraisonId) => {
+  const handleCreateFacture = async (group) => {
     if (!user?.id) {
       setError("Utilisateur non connecté.");
       return;
     }
 
     try {
-      setWorkingId(livraisonId);
+      setWorkingId(group.key);
       setMessage("");
       setError("");
 
-      const response = await createFactureFromLivraison({ livraisonId }, user.id);
-      const createdFacture = response?.data?.data;
-      setMessage(response?.data?.message || "Facture créée.");
+      const factureByLivraisonId = new Set(
+        factures
+          .map((facture) => Number(facture?.livraison?.id || facture?.livraisonId || 0))
+          .filter((id) => Number.isFinite(id) && id > 0)
+      );
 
-      if (createdFacture) {
-        generateFacturePdf(createdFacture, user?.entreprise?.nom || "Entreprise");
+      const livraisonsEligibles = group.livraisons.filter((livraison) => {
+        const statut = String(livraison?.statut || "").toUpperCase();
+        return statut === "LIVREE" && !factureByLivraisonId.has(Number(livraison.id));
+      });
+
+      if (livraisonsEligibles.length === 0) {
+        setMessage("Aucune livraison du lot n'est eligible a la facturation.");
+        return;
       }
+
+      const responses = await Promise.all(
+        livraisonsEligibles.map((livraison) =>
+          createFactureFromLivraison({ livraisonId: livraison.id, userId: user.id })
+        )
+      );
+
+      const createdFactures = responses
+        .map((response) => response?.data?.data)
+        .filter(Boolean);
+
+      if (createdFactures.length > 0) {
+        generateFactureLotPdf(createdFactures, user?.entreprise?.nom || "Entreprise", group.lotLabel);
+      }
+
+      setMessage(`Facture(s) creee(s) pour le lot ${group.lotLabel}.`);
 
       await loadData();
     } catch (invoiceError) {
@@ -160,14 +274,15 @@ export default function Type60Page() {
     }
   };
 
-  const handleExportFacture = async (facture) => {
+  const handleExportFactureGroup = async (group) => {
     try {
-      setExportingId(facture.id);
+      setExportingId(group.key);
       setMessage("");
       setError("");
 
-      generateFacturePdf(facture, user?.entreprise?.nom || "Entreprise");
-      setMessage(`PDF exporte pour la facture ${facture.reference || facture.id}.`);
+      generateFactureLotPdf(group.factures, user?.entreprise?.nom || "Entreprise", group.lotLabel);
+
+      setMessage(`PDF unique exporte pour le lot ${group.lotLabel} (${group.factures.length} facture(s)).`);
     } catch (exportError) {
       setError(exportError?.message || "Erreur lors de l'export PDF.");
     } finally {
@@ -200,8 +315,11 @@ export default function Type60Page() {
           <thead>
             <tr>
               <th>ID</th>
+              <th>Lot</th>
               <th>Reference</th>
               <th>Commande</th>
+              <th>Produit</th>
+              <th>Quantite</th>
               <th>Entreprise</th>
               <th>Date</th>
               <th>Statut</th>
@@ -211,39 +329,47 @@ export default function Type60Page() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan="7" className="text-center">Chargement...</td>
+                <td colSpan="10" className="text-center">Chargement...</td>
               </tr>
-            ) : livraisons.length === 0 ? (
+            ) : groupedLivraisons.length === 0 ? (
               <tr>
-                <td colSpan="7" className="text-center">Aucune livraison trouvee pour cette entreprise.</td>
+                <td colSpan="10" className="text-center">Aucune livraison trouvee pour cette entreprise.</td>
               </tr>
             ) : (
-              livraisons.map((livraison) => {
-                const statut = String(livraison?.statut || "").toUpperCase();
-                const canMarkLivree = statut === "BROUILLON" || statut === "EN_COURS";
-                const canCreateFacture = statut === "LIVREE";
+              groupedLivraisons.map((group) => {
+                const statut = getGroupStatut(group);
+                const canMarkLivree = group.livraisons.some((livraison) => {
+                  const rowStatut = String(livraison?.statut || "").toUpperCase();
+                  return rowStatut === "BROUILLON" || rowStatut === "EN_COURS";
+                });
+                const canCreateFacture = group.livraisons.some(
+                  (livraison) => String(livraison?.statut || "").toUpperCase() === "LIVREE"
+                );
 
                 return (
-                  <tr key={livraison.id}>
-                    <td>{livraison.id}</td>
-                    <td>{livraison.reference || "-"}</td>
-                    <td>{livraison.commande?.id || "-"}</td>
-                    <td>{livraison.entreprise?.nom || "-"}</td>
-                    <td>{livraison.dateLivraison || livraison.dateCreation || "-"}</td>
-                    <td>{livraison.statut || "-"}</td>
+                  <tr key={group.key}>
+                    <td>{group.ids.join(", ")}</td>
+                    <td>{group.lotLabel}</td>
+                    <td>{group.references.join(", ")}</td>
+                    <td>{Array.from(new Set(group.commandeIds)).join(", ")}</td>
+                    <td>{Array.from(new Set(group.produits)).join(", ")}</td>
+                    <td>{group.quantiteTotale}</td>
+                    <td>{group.entrepriseNom}</td>
+                    <td>{group.date}</td>
+                    <td>{statut}</td>
                     <td>
                       <div className="d-flex gap-2 flex-wrap">
                         <button
                           className="btn btn-sm btn-primary"
-                          onClick={() => handleLivree(livraison.id)}
-                          disabled={!canMarkLivree || workingId === livraison.id}
+                          onClick={() => handleLivree(group)}
+                          disabled={!canMarkLivree || workingId === group.key}
                         >
-                          {workingId === livraison.id ? "Traitement..." : "Marquer LIVREE"}
+                          {workingId === group.key ? "Traitement..." : "Marquer LIVREE"}
                         </button>
                         <button
                           className="btn btn-sm btn-secondary"
-                          onClick={() => handleCreateFacture(livraison.id)}
-                          disabled={!canCreateFacture || workingId === livraison.id}
+                          onClick={() => handleCreateFacture(group)}
+                          disabled={!canCreateFacture || workingId === group.key}
                         >
                           Creer facture
                         </button>
@@ -272,8 +398,10 @@ export default function Type60Page() {
           <thead>
             <tr>
               <th>ID</th>
+              <th>Lot</th>
               <th>Reference</th>
               <th>Livraison</th>
+              <th>Produit / Quantite</th>
               <th>Client</th>
               <th>Montant TTC</th>
               <th>Statut</th>
@@ -281,27 +409,29 @@ export default function Type60Page() {
             </tr>
           </thead>
           <tbody>
-            {factures.length === 0 ? (
+            {groupedFactures.length === 0 ? (
               <tr>
-                <td colSpan="7" className="text-center">Aucune facture generee.</td>
+                <td colSpan="9" className="text-center">Aucune facture generee.</td>
               </tr>
             ) : (
-              factures.map((facture) => (
-                <tr key={facture.id}>
-                  <td>{facture.id}</td>
-                  <td>{facture.reference || "-"}</td>
-                  <td>{facture.livraison?.id || "-"}</td>
-                  <td>{facture.client?.nom || "-"}</td>
-                  <td>{facture.montantTtc ?? "-"}</td>
-                  <td>{facture.statut || "-"}</td>
+              groupedFactures.map((group) => (
+                <tr key={group.key}>
+                  <td>{group.factureIds.join(", ")}</td>
+                  <td>{group.lotLabel}</td>
+                  <td>{Array.from(new Set(group.references)).join(", ")}</td>
+                  <td>{Array.from(new Set(group.livraisonIds)).join(", ")}</td>
+                  <td>{Array.from(new Set(group.produits)).join(", ")}</td>
+                  <td>{group.clientNom}</td>
+                  <td>{formatMga(group.totalMontantTtc)}</td>
+                  <td>{Array.from(new Set(group.statuses)).join(", ")}</td>
                   <td>
                     <button
                       type="button"
                       className="btn btn-sm btn-primary"
-                      onClick={() => handleExportFacture(facture)}
-                      disabled={exportingId === facture.id}
+                      onClick={() => handleExportFactureGroup(group)}
+                      disabled={exportingId === group.key}
                     >
-                      {exportingId === facture.id ? "Export..." : "Exporter PDF"}
+                      {exportingId === group.key ? "Export..." : `Exporter PDF (${group.factures.length})`}
                     </button>
                   </td>
                 </tr>

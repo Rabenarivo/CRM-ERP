@@ -8,5 +8,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface ProformaRepository extends JpaRepository<Proforma, Long> {
     List<Proforma> findByStatut(String statut);
+    List<Proforma> findByStatutAndLivraisonsIsEmpty(String statut);
     
 }
