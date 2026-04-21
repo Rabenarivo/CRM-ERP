@@ -289,8 +289,8 @@ UPDATE users SET entreprise_id = 1 WHERE id IN (1,2,3,4,5,6,7);
 
 -- Produits
 INSERT INTO produits (nom, prix, stock, department_id) VALUES
-('Ordinateur HP', 1500000, 10, 5),
-('Imprimante Canon', 500000, 5, 5);
+('Ordinateur HP', 1500000, 10, NULL),
+('Imprimante Canon', 500000, 5, NULL);
 
 -- Commandes
 INSERT INTO commandes (client_id, montant_total, department_id) VALUES

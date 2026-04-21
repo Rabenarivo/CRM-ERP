@@ -281,10 +281,7 @@ public class LivraisonController {
                 : 0d;
 
             Produit produit = produitRepository
-                .searchByName(produitRecherche)
-                .stream()
-                .filter(p -> p.getNom() != null && p.getNom().trim().equalsIgnoreCase(produitRecherche))
-                .findFirst()
+                .findByNomIgnoreCaseAndDepartmentIsNull(produitRecherche)
                 .orElse(null);
 
             if (produit == null) {
@@ -295,7 +292,7 @@ public class LivraisonController {
                 produit.setStockDisponible(0);
                 produit.setStockReserve(0);
                 produit.setStockMin(stockMin != null ? stockMin : 0);
-                produit.setDepartment(user.getDepartment());
+                produit.setDepartment(null);
             } else {
                 if (prixProduit != null && prixProduit >= 0) {
                     produit.setPrix(prixProduit);

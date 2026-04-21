@@ -19,3 +19,10 @@ export const assignProduitDepartment = (produitId, departmentId) => {
     departmentId,
   });
 };
+
+export const transferProduitToDepartment = (produitId, departmentId, quantite) => {
+  return axios.post(`${API_URL}/${produitId}/transfer`, {
+    departmentId,
+    quantite,
+  });
+};

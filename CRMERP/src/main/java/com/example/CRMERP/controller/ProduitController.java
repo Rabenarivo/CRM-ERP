@@ -118,6 +118,101 @@ public class ProduitController {
         return ResponseEntity.ok(updated);
     }
 
+    @PostMapping("/{produitId}/transfer")
+    @Transactional
+    public ResponseEntity<?> transferProduit(
+            @PathVariable Long produitId,
+            @RequestBody Map<String, Object> request
+    ) {
+        Object departmentIdRaw = request.get("departmentId");
+        Object quantiteRaw = request.get("quantite");
+
+        if (departmentIdRaw == null || quantiteRaw == null) {
+            throw new IllegalArgumentException("departmentId et quantite sont requis");
+        }
+
+        Long targetDepartmentId = Long.valueOf(departmentIdRaw.toString());
+        int quantite = Integer.parseInt(quantiteRaw.toString());
+
+        if (quantite <= 0) {
+            throw new IllegalArgumentException("quantite doit etre > 0");
+        }
+
+        Produit sourceProduit = produitRepository.findById(produitId).orElse(null);
+        if (sourceProduit == null) {
+            throw new IllegalArgumentException("Produit not found");
+        }
+
+        if (sourceProduit.getDepartment() != null) {
+            throw new IllegalArgumentException("Transfert autorise uniquement depuis le stock central (department_id null)");
+        }
+
+        Produit principalProduit = produitRepository
+                .findFirstByNomIgnoreCaseAndDepartmentIsNullOrderByIdAsc(sourceProduit.getNom())
+                .orElse(sourceProduit);
+
+        if (!principalProduit.getId().equals(sourceProduit.getId())) {
+            throw new IllegalArgumentException(
+                    "Transfert autorise uniquement depuis le stock principal (ID "
+                            + principalProduit.getId() + ")"
+            );
+        }
+
+        Department targetDepartment = departmentService.findById(targetDepartmentId);
+        if (targetDepartment == null) {
+            throw new IllegalArgumentException("Department not found");
+        }
+
+        Long sourceDepartmentId = principalProduit.getDepartment() != null
+            ? principalProduit.getDepartment().getId()
+                : null;
+        if (sourceDepartmentId != null && sourceDepartmentId.equals(targetDepartmentId)) {
+            throw new IllegalArgumentException("Le departement source et cible sont identiques");
+        }
+
+        int sourceStockDisponible = principalProduit.getStockDisponible() == null
+                ? 0
+            : principalProduit.getStockDisponible();
+        if (sourceStockDisponible < quantite) {
+            throw new IllegalArgumentException("Stock insuffisant pour le transfert");
+        }
+
+        principalProduit.setStockDisponible(sourceStockDisponible - quantite);
+        int sourceStock = principalProduit.getStock() == null ? 0 : principalProduit.getStock();
+        principalProduit.setStock(Math.max(0, sourceStock - quantite));
+        Produit savedSource = service.save(principalProduit);
+
+        Produit targetProduit = produitRepository
+            .findByNomIgnoreCaseAndDepartment_Id(principalProduit.getNom(), targetDepartmentId)
+                .orElseGet(() -> {
+                    Produit created = new Produit();
+                created.setNom(principalProduit.getNom());
+                created.setPrix(principalProduit.getPrix());
+                    created.setStock(0);
+                    created.setStockDisponible(0);
+                    created.setStockReserve(0);
+                created.setStockMin(principalProduit.getStockMin() == null ? 0 : principalProduit.getStockMin());
+                    created.setDepartment(targetDepartment);
+                    return created;
+                });
+
+        int targetStockDisponible = targetProduit.getStockDisponible() == null
+                ? 0
+                : targetProduit.getStockDisponible();
+        int targetStock = targetProduit.getStock() == null ? 0 : targetProduit.getStock();
+
+        targetProduit.setStockDisponible(targetStockDisponible + quantite);
+        targetProduit.setStock(targetStock + quantite);
+        Produit savedTarget = service.save(targetProduit);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("quantite", quantite);
+        response.put("sourceProduit", savedSource);
+        response.put("targetProduit", savedTarget);
+
+        return ResponseEntity.ok(response);
+    }
+
     @PostMapping
     public ResponseEntity<?> create(@RequestBody Map<String, Object> request) {
         Object nomRaw = request.get("nom");
