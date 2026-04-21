@@ -3,14 +3,14 @@ import { AuthContext } from "../../context/AuthContext";
 import { createDemandeAchat, getDemandesAchat } from "../../api/demandeAchatApi";
 import { MiniBarChart, StatGrid } from "../../components/StatsWidgets";
 
-const initialForm = {
+const createLine = () => ({
   produit: "",
   quantite: "",
-};
+});
 
 export default function DemandeAchatPage() {
   const { user } = useContext(AuthContext);
-  const [form, setForm] = useState(initialForm);
+  const [lines, setLines] = useState([createLine()]);
   const [demandes, setDemandes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -58,9 +58,25 @@ export default function DemandeAchatPage() {
     loadDemandes();
   }, []);
 
-  const handleChange = (event) => {
-    const { name, value } = event.target;
-    setForm((currentForm) => ({ ...currentForm, [name]: value }));
+  const handleChangeLine = (index, field, value) => {
+    setLines((current) =>
+      current.map((line, lineIndex) =>
+        lineIndex === index ? { ...line, [field]: value } : line
+      )
+    );
+  };
+
+  const handleAddLine = () => {
+    setLines((current) => [...current, createLine()]);
+  };
+
+  const handleRemoveLine = (index) => {
+    setLines((current) => {
+      if (current.length === 1) {
+        return current;
+      }
+      return current.filter((_, lineIndex) => lineIndex !== index);
+    });
   };
 
   const handleSubmit = async (event) => {
@@ -75,19 +91,47 @@ export default function DemandeAchatPage() {
     setSaving(true);
 
     try {
+      const validLines = lines
+        .map((line) => ({
+          produit: String(line.produit || "").trim(),
+          quantite: Number(line.quantite),
+        }))
+        .filter((line) => line.produit && Number.isFinite(line.quantite) && line.quantite > 0);
+
+      if (validLines.length === 0) {
+        setMessage("Ajoutez au moins un produit valide avec une quantite > 0.");
+        setSaving(false);
+        return;
+      }
+
       const payload = {
-        produit: form.produit,
-        quantite: Number(form.quantite),
+        items: validLines,
         userId: user.id,
       };
 
       const response = await createDemandeAchat(payload);
-      setDemandes((currentDemandes) => [response.data, ...currentDemandes]);
-      setForm(initialForm);
-      setMessage("Demande d'achat créée avec succès.");
+      const createdDemandes = Array.isArray(response?.data?.demandes)
+        ? response.data.demandes
+        : response?.data?.id
+          ? [response.data]
+          : [];
+
+      if (createdDemandes.length > 0) {
+        setDemandes((currentDemandes) => [...createdDemandes, ...currentDemandes]);
+      }
+
+      setLines([createLine()]);
+
+      if (Array.isArray(response?.data?.demandes)) {
+        setMessage(
+          `Demande d'achat creee avec ${response.data.demandes.length} produit(s) (Ref: ${response?.data?.batchReference || "N/A"}).`
+        );
+      } else {
+        setMessage("Demande d'achat créée avec succès.");
+      }
     } catch (error) {
       setMessage(
-        error?.response?.data || "La création de la demande d'achat a échoué."
+        error?.response?.data?.message || error?.response?.data || "La création de la demande d'achat a échoué."
       );
     } finally {
       setSaving(false);
@@ -114,44 +158,65 @@ export default function DemandeAchatPage() {
         emptyLabel="Aucune demande a analyser."
       />
 
-      <form className="request-form row" onSubmit={handleSubmit}>
-        <div className="col-sm-5">
-          <div className="form-group">
-            <label htmlFor="produit">Produit</label>
-            <input
-              id="produit"
-              type="text"
-              className="form-control"
-              name="produit"
-              value={form.produit}
-              onChange={handleChange}
-              placeholder="Nom du produit"
-              required
-            />
+      <form className="request-form" onSubmit={handleSubmit}>
+        {lines.map((line, index) => (
+          <div className="row" key={`line-${index}`} style={{ marginBottom: 10 }}>
+            <div className="col-sm-6">
+              <div className="form-group">
+                <label htmlFor={`produit-${index}`}>Produit</label>
+                <input
+                  id={`produit-${index}`}
+                  type="text"
+                  className="form-control"
+                  value={line.produit}
+                  onChange={(event) => handleChangeLine(index, "produit", event.target.value)}
+                  placeholder="Nom du produit"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="col-sm-3">
+              <div className="form-group">
+                <label htmlFor={`quantite-${index}`}>Quantite</label>
+                <input
+                  id={`quantite-${index}`}
+                  type="number"
+                  className="form-control"
+                  value={line.quantite}
+                  onChange={(event) => handleChangeLine(index, "quantite", event.target.value)}
+                  min="1"
+                  step="1"
+                  placeholder="1"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="col-sm-3" style={{ paddingTop: 25 }}>
+              <button
+                type="button"
+                className="btn btn-default"
+                onClick={() => handleRemoveLine(index)}
+                disabled={lines.length === 1 || saving}
+              >
+                Supprimer ligne
+              </button>
+            </div>
+          </div>
+        ))}
+
+        <div className="row" style={{ marginBottom: 12 }}>
+          <div className="col-sm-6">
+            <button type="button" className="btn btn-default" onClick={handleAddLine} disabled={saving}>
+              + Ajouter un produit
+            </button>
           </div>
         </div>
 
-        <div className="col-sm-4">
-          <div className="form-group">
-            <label htmlFor="quantite">Quantite</label>
-            <input
-              id="quantite"
-              type="number"
-              className="form-control"
-              name="quantite"
-              value={form.quantite}
-              onChange={handleChange}
-              min="1"
-              step="1"
-              placeholder="1"
-              required
-            />
-          </div>
-        </div>
-
-        <div className="col-sm-3 request-form__submit">
+        <div className="request-form__submit">
           <button type="submit" className="btn btn-primary btn-block" disabled={saving}>
-            {saving ? "Creation en cours..." : "Creer la demande"}
+            {saving ? "Creation en cours..." : "Creer la demande multi-produits"}
           </button>
         </div>
       </form>
@@ -172,11 +237,12 @@ export default function DemandeAchatPage() {
               <article key={demande.id} className="request-item panel panel-default">
                 <div className="panel-body">
                   <strong>{demande.produit}</strong>
-                <p>Quantité: {demande.quantite}</p>
-                <p>Statut: {demande.statut || "-"}</p>
-                <p>
-                  Demandeur: {demande.user?.nom || "-"} · Département: {demande.department?.nom || "-"}
-                </p>
+                  <p>Quantité: {demande.quantite}</p>
+                  <p>Statut: {demande.statut || "-"}</p>
+                  <p>Lot: {demande.batchReference || "-"}</p>
+                  <p>
+                    Demandeur: {demande.user?.nom || "-"} · Département: {demande.department?.nom || "-"}
+                  </p>
                 </div>
               </article>
             ))}

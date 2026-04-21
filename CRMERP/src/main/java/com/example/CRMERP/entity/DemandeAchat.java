@@ -15,6 +15,9 @@ public class DemandeAchat {
 
     private Integer quantite;
 
+    @Column(name = "batch_reference")
+    private String batchReference;
+
     private String statut;
 
     @ManyToOne
@@ -55,6 +58,14 @@ public class DemandeAchat {
 
     public void setQuantite(Integer quantite) {
         this.quantite = quantite;
+    }
+
+    public String getBatchReference() {
+        return batchReference;
+    }
+
+    public void setBatchReference(String batchReference) {
+        this.batchReference = batchReference;
     }
 
     public String getStatut() {

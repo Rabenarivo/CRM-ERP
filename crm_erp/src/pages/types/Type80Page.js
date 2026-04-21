@@ -7,7 +7,7 @@ export default function Type80Page() {
   const [proformas, setProformas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [selectedProformaId, setSelectedProformaId] = useState("");
+  const [selectedGroupKey, setSelectedGroupKey] = useState("");
   const [decision, setDecision] = useState("ACCEPTEE");
   const [message, setMessage] = useState("");
   const [allProformas, setAllProformas] = useState([]);
@@ -51,9 +51,51 @@ export default function Type80Page() {
     loadAnalytics();
   }, []);
 
-  const selectedProforma = useMemo(
-    () => proformas.find((proforma) => String(proforma.id) === selectedProformaId),
-    [proformas, selectedProformaId]
+  const groupedProformas = useMemo(() => {
+    const groups = new Map();
+
+    proformas.forEach((proforma) => {
+      const batchReference = proforma?.demande?.batchReference || null;
+      const fournisseurId = proforma?.fournisseur?.id || "N/A";
+      const key = batchReference
+        ? `batch-${batchReference}-f-${fournisseurId}`
+        : `proforma-${proforma.id}`;
+
+      const existing = groups.get(key);
+      const produit = proforma?.demande?.produit || "-";
+      const quantite = proforma?.demande?.quantite ?? "-";
+
+      if (existing) {
+        existing.proformas.push(proforma);
+        existing.proformaIds.push(proforma.id);
+        existing.totalPrix += Number(proforma?.prix || 0);
+        existing.produits.push(`${produit} (${quantite})`);
+        if (proforma?.demande?.id != null) {
+          existing.demandeIds.push(proforma.demande.id);
+        }
+        return;
+      }
+
+      groups.set(key, {
+        key,
+        batchReference,
+        fournisseur: proforma?.fournisseur || null,
+        proformas: [proforma],
+        proformaIds: [proforma.id],
+        demandeIds: proforma?.demande?.id != null ? [proforma.demande.id] : [],
+        totalPrix: Number(proforma?.prix || 0),
+        delai: proforma?.delai,
+        statut: proforma?.statut,
+        produits: [`${produit} (${quantite})`],
+      });
+    });
+
+    return Array.from(groups.values());
+  }, [proformas]);
+
+  const selectedGroup = useMemo(
+    () => groupedProformas.find((group) => String(group.key) === selectedGroupKey),
+    [groupedProformas, selectedGroupKey]
   );
 
   const pendingBudget = useMemo(
@@ -80,30 +122,55 @@ export default function Type80Page() {
 
   const statCards = [
     { label: "Proformas en attente", value: proformas.length },
+    { label: "Lots/fournisseurs", value: groupedProformas.length },
     { label: "Budget en attente", value: formatMga(pendingBudget) },
     { label: "Budget engage", value: formatMga(budgetEngage) },
     { label: "BC envoyes", value: bonCommandes.length },
   ];
 
+  const getGroupLotLabel = (group) => group?.batchReference || `DA-${group?.demandeIds?.[0] || "-"}`;
+
+  const getGroupProductsLabel = (group) => group?.produits?.join(", ") || "-";
+
+  const getGroupDemandeLabel = (group) =>
+    Array.isArray(group?.demandeIds) && group.demandeIds.length > 0
+      ? group.demandeIds.join(", ")
+      : "-";
+
+  const getGroupProformaLabel = (group) =>
+    Array.isArray(group?.proformaIds) && group.proformaIds.length > 0
+      ? group.proformaIds.join(", ")
+      : "-";
+
+  const getGroupStatutLabel = (group) => {
+    const statuses = Array.from(new Set((group?.proformas || []).map((item) => item?.statut || "-")));
+    return statuses.join(", ") || "-";
+  };
+
   const handleSave = async (event) => {
     event.preventDefault();
     setMessage("");
 
-    if (!selectedProformaId) {
-      setMessage("Veuillez selectionner un proforma.");
+    if (!selectedGroup) {
+      setMessage("Veuillez selectionner un lot et une entreprise.");
       return;
     }
 
     setSaving(true);
     try {
-      const payload = {
-        proformaId: Number(selectedProformaId),
-        statut: decision,
-      };
+      await Promise.all(
+        selectedGroup.proformas.map((proforma) =>
+          saveBonCommande({
+            proformaId: Number(proforma.id),
+            statut: decision,
+          })
+        )
+      );
 
-      const response = await saveBonCommande(payload);
-      setMessage(response?.data?.message || "Traitement termine.");
-      setSelectedProformaId("");
+      setMessage(
+        `Traitement termine pour le lot ${getGroupLotLabel(selectedGroup)} et le fournisseur ${selectedGroup.fournisseur?.nom || "-"} (${selectedGroup.proformas.length} proforma(s)).`
+      );
+      setSelectedGroupKey("");
       await loadProformas();
 
       const [proformasRes, bcRes] = await Promise.allSettled([
@@ -152,10 +219,13 @@ export default function Type80Page() {
           <thead>
             <tr>
               <th>Choix</th>
-              <th>ID Proforma</th>
-              <th>Demande</th>
+              <th>Lot</th>
               <th>Fournisseur</th>
+              <th>Produit / Quantite</th>
+              <th>ID Proforma(s)</th>
+              <th>Demande(s)</th>
               <th>Prix</th>
+              <th>Prix total</th>
               <th>Delai</th>
               <th>Statut</th>
             </tr>
@@ -163,32 +233,35 @@ export default function Type80Page() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan="7" className="text-center">Chargement des proformas...</td>
+                <td colSpan="10" className="text-center">Chargement des proformas...</td>
               </tr>
-            ) : proformas.length === 0 ? (
+            ) : groupedProformas.length === 0 ? (
               <tr>
-                <td colSpan="7" className="text-center">Aucun proforma en attente.</td>
+                <td colSpan="10" className="text-center">Aucun proforma en attente.</td>
               </tr>
             ) : (
-              proformas.map((proforma) => {
-                const checked = String(proforma.id) === selectedProformaId;
+              groupedProformas.map((group) => {
+                const checked = String(group.key) === selectedGroupKey;
                 return (
-                  <tr key={proforma.id} className={checked ? "info" : ""}>
+                  <tr key={group.key} className={checked ? "info" : ""}>
                     <td>
                       <input
                         type="radio"
                         name="selectedProforma"
                         checked={checked}
-                        onChange={() => setSelectedProformaId(String(proforma.id))}
-                        aria-label={`Selectionner proforma ${proforma.id}`}
+                        onChange={() => setSelectedGroupKey(String(group.key))}
+                        aria-label={`Selectionner lot ${getGroupLotLabel(group)} ${group.fournisseur?.nom || ""}`}
                       />
                     </td>
-                    <td>{proforma.id}</td>
-                    <td>{proforma.demande?.id || "-"}</td>
-                    <td>{proforma.fournisseur?.nom || `ID ${proforma.fournisseur?.id || "-"}`}</td>
-                    <td>{proforma.prix ?? "-"}</td>
-                    <td>{proforma.delai ?? "-"}</td>
-                    <td>{proforma.statut || "-"}</td>
+                    <td>{getGroupLotLabel(group)}</td>
+                    <td>{group.fournisseur?.nom || `ID ${group.fournisseur?.id || "-"}`}</td>
+                    <td>{getGroupProductsLabel(group)}</td>
+                    <td>{getGroupProformaLabel(group)}</td>
+                    <td>{getGroupDemandeLabel(group)}</td>
+                    <td>{group.proformas.length === 1 ? group.proformas[0]?.prix ?? "-" : `${group.proformas.length} lignes`}</td>
+                    <td>{formatMga(group.totalPrix)}</td>
+                    <td>{group.delai ?? "-"}</td>
+                    <td>{getGroupStatutLabel(group)}</td>
                   </tr>
                 );
               })
@@ -214,15 +287,15 @@ export default function Type80Page() {
         </div>
 
         <div className="col-sm-6 request-form__submit">
-          <button type="submit" className="btn btn-primary btn-block" disabled={saving || !selectedProformaId}>
+          <button type="submit" className="btn btn-primary btn-block" disabled={saving || !selectedGroupKey}>
             {saving ? "Traitement..." : "Enregistrer et envoyer BC"}
           </button>
         </div>
       </form>
 
-      {selectedProforma ? (
+      {selectedGroup ? (
         <div className="alert alert-warning">
-          Proforma selectionne: #{selectedProforma.id} - Fournisseur {selectedProforma.fournisseur?.nom || "-"} - Prix {selectedProforma.prix ?? "-"}
+          Groupe selectionne: Lot {getGroupLotLabel(selectedGroup)} - Fournisseur {selectedGroup.fournisseur?.nom || "-"} - Produits {getGroupProductsLabel(selectedGroup)} - Proforma(s) {getGroupProformaLabel(selectedGroup)} - Total {formatMga(selectedGroup.totalPrix)}
         </div>
       ) : null}
     </div>

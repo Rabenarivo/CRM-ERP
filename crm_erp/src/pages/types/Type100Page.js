@@ -10,12 +10,12 @@ export default function Type100Page() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
-  const [selectedOffreId, setSelectedOffreId] = useState("");
+  const [selectedGroupKey, setSelectedGroupKey] = useState("");
   const [allProformas, setAllProformas] = useState([]);
   const [form, setForm] = useState({
-    prix: "",
     delai: "",
     statut: defaultStatut,
+    linePrices: {},
   });
 
   useEffect(() => {
@@ -46,19 +46,62 @@ export default function Type100Page() {
     loadProformas();
   }, []);
 
-  const selectedOffre = useMemo(
-    () => offres.find((offre) => String(offre.id) === selectedOffreId),
-    [offres, selectedOffreId]
+  const groupedOffres = useMemo(() => {
+    const groups = new Map();
+
+    offres.forEach((offre) => {
+      const batchReference = offre?.demande?.batchReference || null;
+      const fournisseurId = offre?.fournisseur?.id || "N/A";
+      const key = batchReference
+        ? `batch-${batchReference}-f-${fournisseurId}`
+        : `offre-${offre.id}`;
+
+      const existing = groups.get(key);
+      if (existing) {
+        existing.offres.push(offre);
+        existing.totalQuantite += Number(offre?.demande?.quantite || 0);
+        existing.produits.push({
+          produit: offre?.demande?.produit || "-",
+          quantite: Number(offre?.demande?.quantite || 0),
+        });
+      } else {
+        groups.set(key, {
+          key,
+          batchReference,
+          fournisseur: offre?.fournisseur || null,
+          offres: [offre],
+          reference: offre?.reference || "-",
+          totalQuantite: Number(offre?.demande?.quantite || 0),
+          delaiLivraison: offre?.delaiLivraison,
+          statut: offre?.statut,
+          produits: [
+            {
+              produit: offre?.demande?.produit || "-",
+              quantite: Number(offre?.demande?.quantite || 0),
+            },
+          ],
+        });
+      }
+    });
+
+    return Array.from(groups.values());
+  }, [offres]);
+
+  const selectedGroup = useMemo(
+    () => groupedOffres.find((group) => String(group.key) === selectedGroupKey),
+    [groupedOffres, selectedGroupKey]
   );
 
   const offresByDemande = useMemo(() => {
     const counter = new Map();
-    offres.forEach((offre) => {
-      const label = `Demande ${offre?.demande?.id || "N/A"}`;
+    groupedOffres.forEach((group) => {
+      const label = group?.batchReference
+        ? `Lot ${group.batchReference}`
+        : `Demande ${group?.offres?.[0]?.demande?.id || "N/A"}`;
       counter.set(label, (counter.get(label) || 0) + 1);
     });
     return Array.from(counter.entries()).map(([label, value]) => ({ label, value }));
-  }, [offres]);
+  }, [groupedOffres]);
 
   const budgetTotal = useMemo(
     () => allProformas.reduce((sum, proforma) => sum + Number(proforma?.prix || 0), 0),
@@ -67,6 +110,7 @@ export default function Type100Page() {
 
   const statCards = [
     { label: "Offres sans proforma", value: offres.length },
+    { label: "Lots d'offres", value: groupedOffres.length },
     {
       label: "Demandes concernees",
       value: new Set(offres.map((offre) => String(offre?.demande?.id || ""))).size,
@@ -78,62 +122,107 @@ export default function Type100Page() {
     { label: "Budget proformas cumule", value: formatMga(budgetTotal) },
   ];
 
+  const totalPrixSaisi = useMemo(() => {
+    if (!selectedGroup?.offres?.length) {
+      return 0;
+    }
+
+    return selectedGroup.offres.reduce(
+      (sum, offre) => sum + Number(form.linePrices?.[String(offre.id)] || 0),
+      0
+    );
+  }, [selectedGroup, form.linePrices]);
+
   useEffect(() => {
-    if (!selectedOffre) {
+    if (!selectedGroup) {
       return;
     }
 
     setForm((currentForm) => ({
+      linePrices: selectedGroup.offres.reduce((acc, offre) => {
+        const key = String(offre.id);
+        acc[key] = currentForm.linePrices?.[key] ?? "";
+        return acc;
+      }, {}),
       ...currentForm,
       delai:
-        currentForm.delai === "" && selectedOffre.delaiLivraison != null
-          ? String(selectedOffre.delaiLivraison)
+        currentForm.delai === "" && selectedGroup.delaiLivraison != null
+          ? String(selectedGroup.delaiLivraison)
           : currentForm.delai,
     }));
-  }, [selectedOffre]);
+  }, [selectedGroup]);
 
   const handleFormChange = (event) => {
     const { name, value } = event.target;
     setForm((currentForm) => ({ ...currentForm, [name]: value }));
   };
 
+  const handleLinePriceChange = (offreId, value) => {
+    const key = String(offreId);
+    setForm((currentForm) => ({
+      ...currentForm,
+      linePrices: {
+        ...(currentForm.linePrices || {}),
+        [key]: value,
+      },
+    }));
+  };
+
   const handleCreateProforma = async (event) => {
     event.preventDefault();
     setMessage("");
 
-    if (!selectedOffre?.demande?.id || !selectedOffre?.fournisseur?.id) {
-      setMessage("Veuillez choisir une offre valide avec demande et fournisseur.");
+    if (!selectedGroup?.offres?.length || !selectedGroup?.fournisseur?.id) {
+      setMessage("Veuillez choisir un lot d'offres valide avec fournisseur.");
       return;
     }
 
-    const prix = Number(form.prix);
     const delai = Number(form.delai);
-
-    if (Number.isNaN(prix) || prix <= 0) {
-      setMessage("Le prix doit etre un nombre strictement positif.");
-      return;
-    }
 
     if (Number.isNaN(delai) || delai <= 0) {
       setMessage("Le delai doit etre un nombre strictement positif.");
       return;
     }
 
+    const lineEntries = selectedGroup.offres.map((offre) => {
+      const prixLigne = Number(form.linePrices?.[String(offre.id)]);
+      return {
+        offre,
+        prixLigne,
+      };
+    });
+
+    const invalidLine = lineEntries.find(
+      (entry) => Number.isNaN(entry.prixLigne) || entry.prixLigne <= 0
+    );
+
+    if (invalidLine) {
+      setMessage("Chaque produit du lot doit avoir un prix strictement positif.");
+      return;
+    }
+
     setSaving(true);
 
     try {
-      const payload = {
-        idDemande: selectedOffre.demande.id,
-        idFournisseur: selectedOffre.fournisseur.id,
-        prix,
-        delai,
-        statut: form.statut || defaultStatut,
-      };
+      await Promise.all(
+        lineEntries.map(({ offre, prixLigne }) => {
+          const payload = {
+            idDemande: offre.demande.id,
+            idFournisseur: selectedGroup.fournisseur.id,
+            prix: prixLigne,
+            delai,
+            statut: form.statut || defaultStatut,
+          };
 
-      await createProforma(payload);
-      setMessage("Proformat cree avec succes.");
-      setForm({ prix: "", delai: "", statut: defaultStatut });
-      setSelectedOffreId("");
+          return createProforma(payload);
+        })
+      );
+
+      setMessage(
+        `Proformat(s) cree(s) avec succes pour ${selectedGroup.offres.length} ligne(s)${selectedGroup.batchReference ? ` du lot ${selectedGroup.batchReference}` : ""}.`
+      );
+      setForm({ delai: "", statut: defaultStatut, linePrices: {} });
+      setSelectedGroupKey("");
 
       const [offresResponse, proformasResponse] = await Promise.allSettled([
         getAllOffres(),
@@ -171,7 +260,7 @@ export default function Type100Page() {
       <StatGrid items={statCards} />
 
       <MiniBarChart
-        title="Offres en attente par demande"
+        title="Offres en attente par lot"
         data={offresByDemande}
         emptyLabel="Aucune offre a transformer en proforma."
       />
@@ -181,9 +270,10 @@ export default function Type100Page() {
           <thead>
             <tr>
               <th>Choix</th>
-              <th>Offre</th>
+              <th>Lot</th>
               <th>Reference</th>
-              <th>Demande</th>
+              <th>Produits</th>
+              <th>Quantite totale</th>
               <th>Fournisseur</th>
               <th>Delai livraison</th>
               <th>Statut offre</th>
@@ -192,37 +282,41 @@ export default function Type100Page() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan="7" className="text-center">
+                <td colSpan="8" className="text-center">
                   Chargement des offres...
                 </td>
               </tr>
             ) : offres.length === 0 ? (
               <tr>
-                <td colSpan="7" className="text-center">
+                <td colSpan="8" className="text-center">
                   Aucune offre disponible.
                 </td>
               </tr>
             ) : (
-              offres.map((offre) => {
-                const checked = String(offre.id) === selectedOffreId;
+              groupedOffres.map((group) => {
+                const checked = String(group.key) === selectedGroupKey;
+                const produitsLabel = group.produits
+                  .map((item) => `${item.produit} (${item.quantite})`)
+                  .join(", ");
 
                 return (
-                  <tr key={offre.id} className={checked ? "info" : ""}>
+                  <tr key={group.key} className={checked ? "info" : ""}>
                     <td>
                       <input
                         type="radio"
-                        name="selectedOffre"
+                        name="selectedOffreGroup"
                         checked={checked}
-                        onChange={() => setSelectedOffreId(String(offre.id))}
-                        aria-label={`Selectionner offre ${offre.id}`}
+                        onChange={() => setSelectedGroupKey(String(group.key))}
+                        aria-label={`Selectionner lot ${group.batchReference || group.key}`}
                       />
                     </td>
-                    <td>{offre.id}</td>
-                    <td>{offre.reference || "-"}</td>
-                    <td>{offre.demande?.id || "-"}</td>
-                    <td>{offre.fournisseur?.nom || `ID ${offre.fournisseur?.id || "-"}`}</td>
-                    <td>{offre.delaiLivraison ?? "-"}</td>
-                    <td>{offre.statut || "-"}</td>
+                    <td>{group.batchReference || `Offre ${group.offres[0]?.id || "-"}`}</td>
+                    <td>{group.reference || "-"}</td>
+                    <td>{produitsLabel}</td>
+                    <td>{group.totalQuantite}</td>
+                    <td>{group.fournisseur?.nom || `ID ${group.fournisseur?.id || "-"}`}</td>
+                    <td>{group.delaiLivraison ?? "-"}</td>
+                    <td>{group.statut || "-"}</td>
                   </tr>
                 );
               })
@@ -232,25 +326,52 @@ export default function Type100Page() {
       </div>
 
       <form className="request-form row" onSubmit={handleCreateProforma}>
-        <div className="col-sm-3">
+        <div className="col-12">
           <div className="form-group">
-            <label htmlFor="prix">Prix</label>
-            <input
-              id="prix"
-              name="prix"
-              type="number"
-              className="form-control"
-              min="0"
-              step="0.01"
-              placeholder="Ex: 250000"
-              value={form.prix}
-              onChange={handleFormChange}
-              required
-            />
+            <label>Prix par produit du lot</label>
+            {selectedGroup?.offres?.length ? (
+              <div className="table-responsive">
+                <table className="table table-sm table-bordered mb-2">
+                  <thead>
+                    <tr>
+                      <th>Produit</th>
+                      <th>Quantite</th>
+                      <th>Prix</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {selectedGroup.offres.map((offre) => {
+                      const id = String(offre.id);
+                      return (
+                        <tr key={id}>
+                          <td>{offre?.demande?.produit || "-"}</td>
+                          <td>{offre?.demande?.quantite ?? "-"}</td>
+                          <td style={{ minWidth: 180 }}>
+                            <input
+                              type="number"
+                              className="form-control"
+                              min="0"
+                              step="0.01"
+                              placeholder="Ex: 250000"
+                              value={form.linePrices?.[id] ?? ""}
+                              onChange={(event) => handleLinePriceChange(id, event.target.value)}
+                              required
+                            />
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="text-muted">Selectionnez un lot pour saisir les prix par produit.</div>
+            )}
+            <small className="text-muted">Total saisi: {formatMga(totalPrixSaisi)}</small>
           </div>
         </div>
 
-        <div className="col-sm-3">
+        <div className="col-sm-4">
           <div className="form-group">
             <label htmlFor="delai">Delai (jours)</label>
             <input
@@ -268,7 +389,7 @@ export default function Type100Page() {
           </div>
         </div>
 
-        <div className="col-sm-4">
+        <div className="col-sm-6">
           <div className="form-group">
             <label htmlFor="statut">Statut</label>
             <input
@@ -284,7 +405,7 @@ export default function Type100Page() {
         </div>
 
         <div className="col-sm-2 request-form__submit">
-          <button type="submit" className="btn btn-primary btn-block" disabled={saving || !selectedOffreId}>
+          <button type="submit" className="btn btn-primary btn-block" disabled={saving || !selectedGroupKey}>
             {saving ? "Creation..." : "Creer"}
           </button>
         </div>

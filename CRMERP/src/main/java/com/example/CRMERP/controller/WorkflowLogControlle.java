@@ -18,6 +18,7 @@ import java.util.Map;
 
 
 @RestController
+@CrossOrigin(origins = "http://localhost:3000")
 @RequestMapping("/api/workflow-logs")
 public class WorkflowLogControlle {
 
@@ -38,39 +39,38 @@ public class WorkflowLogControlle {
 
 @PostMapping("/demandes-achat")
 public ResponseEntity<?> createDemande(@RequestBody Map<String, Object> request) {
-
-    try {
-        String produit = request.get("produit").toString();
-        Integer quantite = Integer.valueOf(request.get("quantite").toString());
-        Long userId = Long.valueOf(request.get("userId").toString());
-        User user = userService.findById(userId);
-        if (user == null) {
-            return ResponseEntity.badRequest().body("User not found");
-        }
-        DemandeAchat demande = new DemandeAchat();
-        demande.setProduit(produit);
-        demande.setQuantite(quantite);
-        demande.setUser(user);
-        demande.setDepartment(user.getDepartment());
-        demande.setStatut("EN_COURS");
-
-        DemandeAchat saved = demandeService.save(demande);
-
-        WorkflowLog log = new WorkflowLog();
-        log.setDemande(saved);
-        log.setUser(user);
-        log.setDepartment(user.getDepartment());
-        log.setAction("CREATION_DEMANDE");
-        log.setCommentaire("Création automatique");
-
-        workflowService.save(log);
-        
-
-        return ResponseEntity.ok(saved);
-
-    } catch (Exception e) {
-        return ResponseEntity.badRequest().body(e.getMessage());
+    String produit = request.get("produit").toString();
+    Integer quantite = Integer.valueOf(request.get("quantite").toString());
+    Long userId = Long.valueOf(request.get("userId").toString());
+    User user = userService.findById(userId);
+    if (user == null) {
+        throw new IllegalArgumentException("User not found");
     }
+
+    DemandeAchat demande = new DemandeAchat();
+    demande.setProduit(produit);
+    demande.setQuantite(quantite);
+    demande.setUser(user);
+    demande.setDepartment(user.getDepartment());
+    demande.setStatut("EN_COURS");
+
+    DemandeAchat saved = demandeService.save(demande);
+
+    WorkflowLog log = new WorkflowLog();
+    log.setDemande(saved);
+    log.setUser(user);
+    log.setDepartment(user.getDepartment());
+    log.setAction("CREATION_DEMANDE");
+    log.setCommentaire("Création automatique");
+
+    workflowService.save(log);
+
+    return ResponseEntity.ok(saved);
+}
+
+@GetMapping({"", "/list"})
+public ResponseEntity<?> list() {
+    return ResponseEntity.ok(service.findAll());
 }
     
     

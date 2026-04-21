@@ -15,6 +15,10 @@ public class Livraison {
     @JoinColumn(name = "commande_id", nullable = false)
     private Commande commande;
 
+    @ManyToOne
+    @JoinColumn(name = "proforma_id")
+    private Proforma proforma;
+
     private String reference;
 
     private String statut; // BROUILLON, PRETE, LIVREE, ANNULEE
@@ -28,8 +32,8 @@ public class Livraison {
     private User user;
 
     @ManyToOne
-    @JoinColumn(name = "department_id")
-    private Department department;
+    @JoinColumn(name = "entreprise_id")
+    private Client entreprise;
 
     private LocalDateTime dateCreation;
 
@@ -49,6 +53,9 @@ public class Livraison {
     public Commande getCommande() { return commande; }
     public void setCommande(Commande commande) { this.commande = commande; }
 
+    public Proforma getProforma() { return proforma; }
+    public void setProforma(Proforma proforma) { this.proforma = proforma; }
+
     public String getReference() { return reference; }
     public void setReference(String reference) { this.reference = reference; }
 
@@ -64,8 +71,8 @@ public class Livraison {
     public User getUser() { return user; }
     public void setUser(User user) { this.user = user; }
 
-    public Department getDepartment() { return department; }
-    public void setDepartment(Department department) { this.department = department; }
+    public Client getEntreprise() { return entreprise; }
+    public void setEntreprise(Client entreprise) { this.entreprise = entreprise; }
 
     public LocalDateTime getDateCreation() { return dateCreation; }
     public void setDateCreation(LocalDateTime dateCreation) { this.dateCreation = dateCreation; }

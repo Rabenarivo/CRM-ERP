@@ -14,7 +14,7 @@ public class WorkflowLogService {
     }
 
     public List<WorkflowLog> findAll() {
-        return repoworkflow.findAll();
+        return repoworkflow.findAllByOrderByDateActionDesc();
     }
 
     public WorkflowLog save(WorkflowLog w) {

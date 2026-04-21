@@ -7,4 +7,7 @@ import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface LivraisonRepository extends JpaRepository<Livraison, Long> {
+	List<Livraison> findByEntrepriseIdOrderByDateCreationDesc(Long entrepriseId);
+
+	List<Livraison> findByEntrepriseIdAndStatutOrderByDateCreationDesc(Long entrepriseId, String statut);
 }

@@ -4,6 +4,7 @@ D:\ITU\PERSO\CRMERP\CRM+ERP\CRMERP\src\main\java\com\example\CRMERP\controller\D
 D:\ITU\PERSO\CRMERP\CRM+ERP\CRMERP\src\main\java\com\example\CRMERP\controller\DepartmentController.java
 D:\ITU\PERSO\CRMERP\CRM+ERP\CRMERP\src\main\java\com\example\CRMERP\controller\FactureController.java
 D:\ITU\PERSO\CRMERP\CRM+ERP\CRMERP\src\main\java\com\example\CRMERP\controller\FournisseurController.java
+D:\ITU\PERSO\CRMERP\CRM+ERP\CRMERP\src\main\java\com\example\CRMERP\controller\GlobalExceptionHandler.java
 D:\ITU\PERSO\CRMERP\CRM+ERP\CRMERP\src\main\java\com\example\CRMERP\controller\LivraisonController.java
 D:\ITU\PERSO\CRMERP\CRM+ERP\CRMERP\src\main\java\com\example\CRMERP\controller\OffreController.java
 D:\ITU\PERSO\CRMERP\CRM+ERP\CRMERP\src\main\java\com\example\CRMERP\controller\PaiementController.java
@@ -31,6 +32,7 @@ D:\ITU\PERSO\CRMERP\CRM+ERP\CRMERP\src\main\java\com\example\CRMERP\entity\User.
 D:\ITU\PERSO\CRMERP\CRM+ERP\CRMERP\src\main\java\com\example\CRMERP\entity\users_roles.java
 D:\ITU\PERSO\CRMERP\CRM+ERP\CRMERP\src\main\java\com\example\CRMERP\entity\WorkflowLog.java
 D:\ITU\PERSO\CRMERP\CRM+ERP\CRMERP\src\main\java\com\example\CRMERP\repository\BonCommandeRepository.java
+D:\ITU\PERSO\CRMERP\CRM+ERP\CRMERP\src\main\java\com\example\CRMERP\repository\CommandeRepository.java
 D:\ITU\PERSO\CRMERP\CRM+ERP\CRMERP\src\main\java\com\example\CRMERP\repository\DemandeAchatRepository.java
 D:\ITU\PERSO\CRMERP\CRM+ERP\CRMERP\src\main\java\com\example\CRMERP\repository\DepartmentRepository.java
 D:\ITU\PERSO\CRMERP\CRM+ERP\CRMERP\src\main\java\com\example\CRMERP\repository\FactureRepository.java
