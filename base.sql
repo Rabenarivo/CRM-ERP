@@ -411,6 +411,98 @@ CREATE TABLE paiements (
 
 CREATE INDEX idx_paiements_facture_id ON paiements(facture_id);
 CREATE INDEX idx_paiements_statut ON paiements(statut);
+
+
+
+
+
+-- =====================================
+-- LOTS 
+-- =====================================
+CREATE TABLE livraison_lots (
+id SERIAL PRIMARY KEY,
+livraison_id INT NOT NULL,
+produit_id INT NOT NULL,
+lot_reference VARCHAR(120) NOT NULL,
+quantite_livree INT NOT NULL CHECK (quantite_livree > 0),
+quantite_retournee INT NOT NULL DEFAULT 0 CHECK (quantite_retournee >= 0),
+statut_qualite VARCHAR(20) NOT NULL DEFAULT 'CONFORME'
+CHECK (statut_qualite IN ('CONFORME', 'DEFECTUEUX', 'HS')),
+date_creation TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+FOREIGN KEY (livraison_id) REFERENCES livraisons(id) ON DELETE CASCADE,
+FOREIGN KEY (produit_id) REFERENCES produits(id),
+UNIQUE (livraison_id, produit_id, lot_reference)
+
+);
+
+
+CREATE INDEX idx_livraison_lots_livraison_id ON livraison_lots(livraison_id);
+CREATE INDEX idx_livraison_lots_produit_id ON livraison_lots(produit_id);
+CREATE INDEX idx_livraison_lots_statut_qualite ON livraison_lots(statut_qualite);
+
+
+
+
+CREATE TABLE retours_livraison (
+id SERIAL PRIMARY KEY,
+livraison_id INT NOT NULL,
+reference VARCHAR(100) UNIQUE,
+statut VARCHAR(30) NOT NULL DEFAULT 'BROUILLON'
+CHECK (statut IN ('BROUILLON', 'DEMANDE', 'VALIDE', 'REFUSE', 'CLOTURE')),
+motif_global VARCHAR(30),
+commentaire TEXT,
+date_retour TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+user_id INT,
+department_id INT,
+
+
+FOREIGN KEY (livraison_id) REFERENCES livraisons(id),
+FOREIGN KEY (user_id) REFERENCES users(id),
+FOREIGN KEY (department_id) REFERENCES departments(id)
+);
+
+
+CREATE INDEX idx_retours_livraison_livraison_id ON retours_livraison(livraison_id);
+CREATE INDEX idx_retours_livraison_statut ON retours_livraison(statut);
+
+
+
+CREATE TABLE retour_livraison_lignes (
+id SERIAL PRIMARY KEY,
+retour_id INT NOT NULL,
+livraison_lot_id INT NOT NULL,
+produit_id INT NOT NULL,
+motif VARCHAR(30) NOT NULL
+CHECK (motif IN ('DEFECTUEUX', 'HS', 'ERREUR_LIVRAISON', 'AUTRE')),
+quantite_retour INT NOT NULL CHECK (quantite_retour > 0),
+decision_stock VARCHAR(30) NOT NULL DEFAULT 'QUARANTAINE'
+CHECK (decision_stock IN ('REINTEGRATION', 'QUARANTAINE', 'HS', 'RETOUR_FOURNISSEUR')),
+commentaire TEXT,
+
+
+FOREIGN KEY (retour_id) REFERENCES retours_livraison(id) ON DELETE CASCADE,
+FOREIGN KEY (livraison_lot_id) REFERENCES livraison_lots(id),
+FOREIGN KEY (produit_id) REFERENCES produits(id),
+UNIQUE (retour_id, livraison_lot_id)
+);
+
+
+CREATE INDEX idx_retour_lignes_retour_id ON retour_livraison_lignes(retour_id);
+CREATE INDEX idx_retour_lignes_lot_id ON retour_livraison_lignes(livraison_lot_id);
+CREATE INDEX idx_retour_lignes_produit_id ON retour_livraison_lignes(produit_id);
+
+
+
+ALTER TABLE stock_movements ADD COLUMN source_type VARCHAR(30);
+ALTER TABLE stock_movements ADD COLUMN source_id INT;
+ALTER TABLE stock_movements ADD COLUMN etat_produit VARCHAR(20)
+CHECK (etat_produit IN ('CONFORME', 'DEFECTUEUX', 'HS'));
+
+CREATE INDEX idx_stock_movements_source ON stock_movements(source_type, source_id);
+
+
+
 -- SELECT d.nom,d.id
 -- FROM department_access da
 -- JOIN departments d ON d.id = da.can_view_department_id
