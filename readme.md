@@ -1,4 +1,4 @@
-# 📊 CRM + ERP System
+# 📊 ERP System
 
 ## 🧠 Description
 
@@ -19,15 +19,6 @@ Ce projet est un système complet de gestion d’entreprise combinant :
 ---
 
 ## 🔹 Fonctionnalités
-
-### 📌 CRM
-
-* Gestion des clients
-* Suivi des interactions
-* Gestion des opportunités
-* Création des commandes
-
----
 
 ### 📌 ERP
 
@@ -73,11 +64,6 @@ Ce projet est un système complet de gestion d’entreprise combinant :
 * departments
 * user_roles
 
-### CRM
-
-* clients
-* interactions
-* opportunites
 
 ### ERP
 
